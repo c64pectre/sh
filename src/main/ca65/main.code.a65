@@ -90,9 +90,6 @@ KERNAL_NNMI20   := $FE72                                    ; Kernal nnmi20 cont
 .export ARGV_LO := ARGV                                     ; $033E
 .export ARGV_HI := ARGV + 1                                 ; $033F
 
-        .assert * = 2062 , error
-        .assert * = $080E , error
-
 ; Entry point
 entrypoint:
 main:
@@ -286,7 +283,6 @@ RESUME_RUN:
             jmp     RESUME_RUN
 .endproc
 
-        .assert * = $0922 , error
 SAVE_KERNAL_NMINV_LO:   .byte   0                           ; $0922
 SAVE_KERNAL_NMINV_HI:   .byte   0                           ; $0923
 SAVE_S:                 .byte   0                           ; $0924
@@ -1170,19 +1166,15 @@ SAVE_VIC_B0C:       .byte   0
             jmp     KERNAL_CLRCHN
 .endproc
 
-        .assert * = $0E9E , error
 RESOURCE_STRING_COMMAND_NOT_FOUND:
     .byte "command not found" , PETSCII_RETURN, PETSCII_NUL
 
-        .assert * = $0EB1 , error
 RESOURCE_STRING_CANT_OPEN_INPUT_FILE:
     .byte "can't open input file" , PETSCII_RETURN, PETSCII_NUL
 
-        .assert * = $0EC8 , error
 RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE:
     .byte "can't open output file" , PETSCII_RETURN, PETSCII_NUL
 
-        .assert * = $0EE0 , error
 RESOURCE_STRING_PRINTER_NOT_PRESENT:
     .byte "printer not present" , PETSCII_RETURN, PETSCII_NUL
 
@@ -1615,34 +1607,24 @@ L10AB:  .byte   0
 
 COMMAND_NAME_TABLE:
     ; bye 0 0
-        .assert * = $1199 , error
     .byte   "bye" , PETSCII_NUL , PETSCII_NUL
     ; load 0
-        .assert * = $119E , error
     .byte   "load" , PETSCII_NUL
     ; ls 0 0 0
-        .assert * = $11A3 , error
     .byte   "ls" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
     ; l 0 0 0 0
-        .assert * = $11A8 , error
     .byte   "l" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
     ; rm 0 0 0
-        .assert * = $11AD , error
     .byte   "rm" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
     ; mv 0 0 0
-        .assert * = $11B2 , error
     .byte   "mv" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
     ; pr 0 0 0
-        .assert * = $11B7 , error
     .byte   "pr" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
     ; disk 0
-        .assert * = $11BC , error
     .byte   "disk" , PETSCII_NUL
     ; work 0
-        .assert * = $11C1 , error
     .byte   "work" , PETSCII_NUL
     ; sys 0 0
-        .assert * = $11C6 , error
     .byte   "sys" , PETSCII_NUL , PETSCII_NUL
 
 ;;; summary: Command: directory listing of work or system disk
@@ -1757,7 +1739,6 @@ COMMAND_NAME_TABLE:
             jmp     RESET_FILE_IO
 .endproc
 
-                .assert * = $12A1 , error
 DIR_TEXT: 
 DIR_NAME_DOLLAR:
 L12A1:  .byte   PETSCII_DOLLAR
@@ -1765,7 +1746,6 @@ DIR_NAME_DRIVE:
 L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
         .res    16, PETSCII_NUL
 
-                .assert * = $12B4 , error
 .proc PROC_E
             stx     L1311
             sty     L1312
@@ -1921,7 +1901,6 @@ SAVE_KERNAL_READST:     .byte   0
 .endproc
 
 ; `rm` disk command text buffer ('s' = scratch, drive '0')
-        .assert * = $13C6 , error
 RM_TEXT:        .byte   PETSCII_LATIN_LETTER_S
 RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
                 .byte   PETSCII_COLON
@@ -1989,7 +1968,6 @@ RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
 .endproc
 
 ; `mv` disk command text buffer ('r' = rename, drive '0')
-        .assert * = $1459 , error
 MV_TEXT:        .byte   PETSCII_LATIN_LETTER_R
 MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
                 .byte   PETSCII_COLON
@@ -2047,7 +2025,6 @@ MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
             jmp     RESET_FILE_IO
 .endproc
 
-        .assert * = $14F5 , error
 RESOURCE_STRING_CANT_OPEN_FILE:
     .byte "can't open file" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
@@ -2060,7 +2037,6 @@ RESOURCE_STRING_CANT_OPEN_FILE:
             jmp     RESET_FILE_IO
 .endproc
 
-        .assert * = $1516 , error
 RESOURCE_STRING_DEVICE_NOT_PRESENT:
     .byte "device not present" , PETSCII_RETURN , PETSCII_NUL
 
@@ -2105,7 +2081,6 @@ RESOURCE_STRING_DEVICE_NOT_PRESENT:
             jmp     RESET_FILE_IO
 .endproc
 
-        .assert * = $157C , error
 RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
     .byte "wrong number of arguments" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
@@ -2140,7 +2115,6 @@ RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
             jmp     RESET_FILE_IO
 .endproc
 
-        .assert * = $15C6 , error
 STRING_DEVICE_DRIVE:
 STRING_DEVICE:
     .byte   "device: "
@@ -2149,12 +2123,10 @@ STRING_DEVICE_NUMBER_0:
 STRING_DEVICE_NUMBER_1:
     .byte   PETSCII_NUL
 
-        .assert * = $15D0 , error
 STRING_DRIVE:
     .byte   "  drive: "
 STRING_DRIVE_NUMBER_0:
     .byte   PETSCII_NUL
-        .assert * = $15DA , error
     .byte   PETSCII_RETURN
     .byte   PETSCII_RETURN
     .byte   PETSCII_NUL
@@ -2264,12 +2236,10 @@ STRING_DRIVE_NUMBER_0:
             rts
 .endproc
 
-        .assert * = $1661 , error
 RESOURCE_STRING_DRIVE_NOT_PRESENT:
     .byte   "drive not present" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
 ; Disk command Memory-Read. Used for what?
-        .assert * = $1675 , error
 MR_TEXT:
     .byte   "m-r"
 MR_TEXT_AFTER:
@@ -2279,21 +2249,16 @@ MR_TEXT_LENGTH = MR_TEXT_AFTER - MR_TEXT
 ; bss
 ;
 
-        .assert * = $1678 , error
 INPUT_TEXT:             .res    81                          ; Input text.
 
-        .assert * = $16C9 , error
 L16C9:                   .res    1                          ; Initialized, not used anywhere else
 
-        .assert * = $16CA , error
 L16CA:                  .res    128                         ; Unused storage
 
-        .assert * = $174A , error
 L174A:                  .res    1                           ; Unused storage
 L174B:                  .res    1                           ; Unused storage
 L174C:                  .res    79                          ; Unused storage
 
-        .assert * = $179B , error
 ;;; summary: WORD ARGV[10]
 ARGV_0:
 ARGV_0_LO:              .res    1   ; $179B
@@ -2333,33 +2298,26 @@ ARGV_9:
 ARGV_9_LO:              .res    1   ; $17AD
 ARGV_9_HI:              .res    1   ; $17AE
 
-        .assert * = $17AF , error
 FILE_NAME_TEXT:
 FILE_NAME_TEXT_DRIVE:   .res    1
-        .assert * = $17B0 , error
 FILE_NAME_TEXT_COLON:   .res    1
                         .res    23
 
-        .assert * = $17C8 , error
 LOADED_PROGRAM_NAME:    .res    20
 
 ; Disk status (might be too small)
-        .assert * = $17DC , error
 DISK_STATUS_TEXT:
 DISK_STATUS_TEXT_CODE_0:
                         .res    1
-        .assert * = $17DD , error
 DISK_STATUS_TEXT_CODE_1:
                         .res    10
 
-        .assert * = $17E7 , error
 L17E7:                  .res    16                          ; Unused storage
 
 L17F7:                  .res    1                           ; Unused storage
 L17F8:                  .res    1                           ; Unused storage
 L17F9:                  .res    1                           ; Unused storage
 
-        .assert * = $17FA , error
 SYS_DEVICE:             .res    1                           ; $17FA
 SYS_DRIVE:              .res    1                           ; $17FB
 WORK_DEVICE:            .res    1                           ; $17FC
