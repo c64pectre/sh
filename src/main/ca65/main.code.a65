@@ -115,7 +115,9 @@ NMI_ENTRY_COUNT             := $03C6
 
 LOAD_PROGRAM_SAVE_X_DEVICE  := $03C7
 
-BUFFER_FIRST                := $03C8
+SAVE_KERNAL_READST          := $03C8
+
+BUFFER_FIRST                := $03C9
 BUFFER_LAST                 := $03FF
 
 ; Memory area 2 $02A7-$02FF (89 bytes)
@@ -123,7 +125,6 @@ AREA_2 := $02A7
 AREA_2_FIRST := AREA_2
 AREA_2_LAST := $02FF
 AREA_2_SIZE = AREA_2_LAST + 1 - AREA_2
-
 
 FILE_NAME_TEXT := AREA_2
 FILE_NAME_TEXT_DRIVE := AREA_2

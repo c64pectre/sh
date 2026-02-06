@@ -33,8 +33,6 @@ BINARY_TO_DECIMAL_DECIMAL:                                  ; L1315
         .byte   0       ; [2]
         .byte   0       ; [3]
 
-SAVE_KERNAL_READST:     .byte   0
-
 ; `rm` disk command text buffer ('s' = scratch, drive '0')
 RM_TEXT:        .byte   PETSCII_LATIN_LETTER_S
 RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
