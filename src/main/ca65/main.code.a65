@@ -796,7 +796,6 @@ RESOURCE_STRING_PRINTER_NOT_PRESENT:
 
 ;;; summary: Redirect output to file named `FILE_NAME_TEXT` extracted from `INPUT_TEXT` on work disk
 .proc REDIRECT_OUTPUT_TO_FILE
-  BREAK1:
     lda # 1
     sta REDIRECT_OUTPUT_ACTIVE
     sty ZP_24
