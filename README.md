@@ -6,7 +6,7 @@ Commodore 64 Shell, based on the shell from Spinnaker Power C from 1986.
 
 | Command | Description |
 | :- | :- |
-| `bye` | Exit shell. Does a reset. |
+| `exit` | Exit shell. |
 | `l` | List directory of work disk. Pause with SHIFT key. |
 | `ls` | List directory of system disk. Pause with SHIFT key. |
 | `mv FROM TO` | Move (rename) a file. |

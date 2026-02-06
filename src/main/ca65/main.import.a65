@@ -15,3 +15,7 @@
 ;    along with this program.  If not, see https://www.gnu.org/licenses/.
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
+
+.import CONFIG_BORDER_COLOR
+.import CONFIG_BACKGROUND_COLOR
+.import CONFIG_FOREGROUND_COLOR_CHAR

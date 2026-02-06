@@ -16,10 +16,10 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
+; TODO: l > l gives file named ","
+
 DEFAULT_DEVICE = 8
 DEFAULT_DRIVE = 0
-
-RM_TEXT_OFFSET_NAME = 3
 
 DISK_COMMAND_FA = 15
 DISK_COMMAND_SA = 15
@@ -33,176 +33,261 @@ REDIRECT_OUTPUT_PRINTER_DA = 4
 REDIRECT_OUTPUT_PRINTER_SA = 7
 
 FILE_FA = 4
+FILE_SA = 4
 
 FILE_NAME_TEXT_COLON_OFFSET_NAME = 2
 
 COMMAND_NAME_SIZE = 5
 
-ARGV_SIZE = 10
+ARGC_MAX = 10
+
+ARGV_SIZE = ARGC_MAX
 
 PROGRAM_ENTRYPOINT = $1800                                  ; Entry point of loaded program
 
-L0053 := $0053
-LBBA2 := $BBA2                                              ; BASIC routine
-LBDDD := $BDDD                                              ; BASIC routine
-LFCE2 := $FCE2                                              ; Kernal routine
+RM_TEXT_OFFSET_NAME = 3
 
-KERNAL_NNMI20   := $FE72                                    ; Kernal nnmi20 continuation of NMI handing.
+KERNAL_NNMI20 := $FE72                                      ; Kernal nnmi20 continuation of NMI handing.
 
-.exportzp ZP_1A := $1A  ;
-.exportzp ZP_1B := $1B  ;
-.exportzp ZP_20 := $20  ;
-.exportzp ZP_21 := $21  ;
-.exportzp ZP_29 := $29  ;
-.exportzp ZP_2A := $2A  ; Used
-.exportzp ZP_2B := $2B  ; Used
-.exportzp ZP_4B := $4B  ;
-.exportzp ZP_4C := $4C  ;
-.exportzp ZP_4D := $4D  ;
-.exportzp ZP_4E := $4E  ;
-.exportzp ZP_4F := $4F  ;
-.exportzp ZP_50 := $50  ;
-.exportzp ZP_51 := $51  ;
-.exportzp ZP_52 := $52  ;
-.exportzp ZP_53 := $53  ;
-.exportzp ZP_54 := $54  ;
-.exportzp ZP_55 := $55  ;
-.exportzp ZP_56 := $56  ;
-.exportzp ZP_57 := $57  ; Used
-.exportzp ZP_58 := $58  ; Used
-.exportzp ZP_59 := $59  ;
-.exportzp ZP_5A := $5A  ;
-.exportzp ZP_5B := $5B  ;
-.exportzp ZP_5C := $5C  ;
-.exportzp ZP_CB := $CB  ;
-.exportzp ZP_FB := $FB  ;
-.exportzp ZP_FC := $FC  ;
-.exportzp ZP_FD := $FD  ;
-.exportzp ZP_FE := $FE  ;
+; ARGC: Argument count
+.export ARGC                        := KERNAL_TBUFFR        ; $033C
+.export ARGC_LO                     := ARGC                 ; $033C
+.export ARGC_HI                     := ARGC + 1             ; $033D
 
-; argc: Argument count
-.export ARGC    := KERNAL_TBUFFR                            ; $033C
-.export ARGC_LO := ARGC                                     ; $033C
-.export ARGC_HI := ARGC + 1                                 ; $033D
+; PARGV: Pointer to argv: argument value array: array of pointer to string
+.export PARGV                       := KERNAL_TBUFFR + 2    ; $033E
+.export PARGV_LO                    := PARGV                ; $033E
+.export PARGV_HI                    := PARGV + 1            ; $033F
 
-; pargv: Pointer to argv: argument value array: array of pointer to string
-.export ARGV    := KERNAL_TBUFFR + 2                        ; $033E
-.export ARGV_LO := ARGV                                     ; $033E
-.export ARGV_HI := ARGV + 1                                 ; $033F
+.export NEW_SYS_DEVICE              := $17FA                ; $0340    
+.export NEW_SYS_DRIVE               := $17FB                ; $0341
+.export NEW_WORK_DEVICE             := $17FC                ; $0342
+.export NEW_WORK_DRIVE              := $17FD                ; $0343
+.export NEW_REDIRECT_INPUT_ACTIVE   := $17FE                ; $0344 0=no , 1=yes
+.export NEW_REDIRECT_OUTPUT_ACTIVE  := $17FF                ; $0345 0=no , 1=yes
 
-; Entry point
-entrypoint:
-main:
+ARGV                        := $0346
+ARGV_0                      := ARGV + 0             ; $0346
+ARGV_0_LO                   := ARGV_0               ; $0346
+ARGV_0_HI                   := ARGV_0 + 1           ; $0347
+ARGV_1                      := ARGV + 2             ; $0348
+ARGV_1_LO                   := ARGV_1               ; $0348
+ARGV_1_HI                   := ARGV_1 + 1           ; $0349
+ARGV_2                      := ARGV + 4             ; $034A
+ARGV_2_LO                   := ARGV_2               ; $034A
+ARGV_2_HI                   := ARGV_2 + 1           ; $034B
+ARGV_3                      := ARGV + 6             ; $034C
+ARGV_3_LO                   := ARGV_3               ; $034C
+ARGV_3_HI                   := ARGV_3 + 1           ; $034D
+ARGV_4                      := ARGV + 8             ; $034E
+ARGV_4_LO                   := ARGV_4               ; $034E
+ARGV_4_HI                   := ARGV_4 + 1           ; $034F
+ARGV_5                      := ARGV + 10            ; $0350
+ARGV_5_LO                   := ARGV_5               ; $0350
+ARGV_5_HI                   := ARGV_5 + 1           ; $0351
+ARGV_6                      := ARGV + 12            ; $0352
+ARGV_6_LO                   := ARGV_6               ; $0352
+ARGV_6_HI                   := ARGV_6 + 1           ; $0353
+ARGV_7                      := ARGV + 14            ; $0354
+ARGV_7_LO                   := ARGV_7               ; $0354
+ARGV_7_HI                   := ARGV_7 + 1           ; $0355
+ARGV_8                      := ARGV + 16            ; $0356
+ARGV_8_LO                   := ARGV_8               ; $0356
+ARGV_8_HI                   := ARGV_8 + 1           ; $0357
+ARGV_9                      := ARGV + 18            ; $0358
+ARGV_9_LO                   := ARGV_9               ; $0358
+ARGV_9_HI                   := ARGV_9 + 1           ; $0359
 
-            jmp     EXECUTE
+;;; summary: Input text $035A-03AB (82 bytes)
+INPUT_TEXT                  := $035A
+INPUT_TEXT_LAST             := $03AB
 
-            jmp     L0928                                   ; Dead code
+;;; summary: Name of loaded program, if any (then LOADED_PROGRAM_NAME[0] == 0) (20 bytes)
+LOADED_PROGRAM_NAME         := $03AC
+LOADED_PROGRAM_NAME_LAST    := $03BF
 
-            jmp     L0933                                   ; Dead code
+SAVE_KVAR_COLOR             := $03C0
+SAVE_VIC_EC                 := $03C1
+SAVE_VIC_B0C                := $03C2
 
-            jmp     L0957                                   ; Dead code
+SAVE_KERNAL_NMINV_LO        := $03C3
+SAVE_KERNAL_NMINV_HI        := $03C4
+SAVE_S                      := $03C5
+NMI_ENTRY_COUNT             := $03C6
 
-            jmp     L0960                                   ; Dead code
+LOAD_PROGRAM_SAVE_X_DEVICE  := $03C7
 
-            jmp     L0941                                   ; Dead code
+BUFFER_FIRST                := $03C8
+BUFFER_LAST                 := $03FF
 
-            jmp     L0CD4                                   ; Dead code
+; Memory area 2 $02A7-$02FF (89 bytes)
+AREA_2 := $02A7
+AREA_2_FIRST := AREA_2
+AREA_2_LAST := $02FF
+AREA_2_SIZE = AREA_2_LAST + 1 - AREA_2
 
-            jmp     L0926                                   ; Dead code
 
-EXECUTE:
+FILE_NAME_TEXT := AREA_2
+FILE_NAME_TEXT_DRIVE := AREA_2
+FILE_NAME_TEXT_COLON := AREA_2 + 1
 
-INITIALIZE:
-            ; Save NMI handler
-            lda     KERNAL_NMINV_LO
-            sta     SAVE_KERNAL_NMINV_LO
-            lda     KERNAL_NMINV_HI
-            sta     SAVE_KERNAL_NMINV_HI
-            ; Save stack pointer
-            tsx
-            stx     SAVE_S
-            ; Set border color (TODO Make configurable)
-            lda     # COLOR_DGY
-            sta     VIC_EC
-            ; Set background color (TODO Make configurable)
-            lda     # COLOR_GRY
-            sta     VIC_B0C
-            ; Set foreground color (TODO Make configurable)
-            lda     # PETSCII_WHITE
-            jsr     KERNAL_CHROUT
-            ; Clear screen
-            lda     # PETSCII_CLR
-            jsr     KERNAL_CHROUT
-            ;
-            lda     # PETSCII_RETURN
-            jsr     KERNAL_CHROUT
-            ; Set system and word device to 8 (TODO use $BA Device number of current file.)
-            lda     # DEFAULT_DEVICE
-            sta     SYS_DEVICE
-            sta     WORK_DEVICE
-            ; Set system and work drive to 0, i.e. single side, or upper side of double sided drive.
-            lda     # DEFAULT_DRIVE                         ; A=0
-            sta     SYS_DRIVE
-            sta     WORK_DRIVE
+DISK_STATUS_TEXT := AREA_2
+DISK_STATUS_TEXT_CODE_0 := AREA_2
+DISK_STATUS_TEXT_CODE_1 := AREA_2 + 1
 
-            sta     L16C9                                   ; L16C9=0 Not used anywhere else
-            sta     MNI_CALL_COUNT                          ; MNI_CALL_COUNT = 0
-            sta     LOADED_PROGRAM_NAME                                  ; LOADED_PROGRAM_NAME[0] = PETSCII_NUL
+.export SYS_DEVICE              := $17FA                    
+.export SYS_DRIVE               := $17FB
+.export WORK_DEVICE             := $17FC
+.export WORK_DRIVE              := $17FD
+.export REDIRECT_INPUT_ACTIVE   := $17FE                    ; 0 = no , 1 = yes
+.export REDIRECT_OUTPUT_ACTIVE  := $17FF                    ; 0 = no , 1 = yes
 
-RUN:
-RESUME_RUN:
-            ; Set our NMI handler
-            lda     # <MY_NMI_HANDLER
-            sta     KERNAL_NMINV_LO
-            lda     # >MY_NMI_HANDLER
-            sta     KERNAL_NMINV_HI
-            ; Set VIC Memory Pointer
-            lda     VIC_MP                                  ; Default $15 = % 0001 0011
-            ora     # %00000010
-            sta     VIC_MP
+.exportzp ZP_23 := $23  ; Was ZP_2A
+.exportzp ZP_24 := $24  ; Was ZP_2B
 
-    L087A:
-            jsr     SHOW_PROMPT
-            jsr     KEYBOARD_READ_LINE_TO_INPUT_TEXT
-            jsr     PROCESS_INPUT_TEXT
-            jmp     L087A
+.exportzp ZP_25 := $25  ; Was ZP_57
+.exportzp ZP_26 := $26  ; Was ZP_58
+
+.exportzp ZP_27 := $27  ; Was ZP_59
+
+.proc main
+    jsr INITIALIZE
+    jsr RUN
+    rts
+.endproc
+
+.proc INITIALIZE
+    ; Save NMI handler
+    lda KERNAL_NMINV_LO
+    sta SAVE_KERNAL_NMINV_LO
+    lda KERNAL_NMINV_HI
+    sta SAVE_KERNAL_NMINV_HI
+
+    ; Save stack pointer
+    tsx
+    stx SAVE_S
+
+    ; Set border color (TODO Make configurable)
+    lda CONFIG_BORDER_COLOR
+    sta VIC_EC
+
+    ; Set background color (TODO Make configurable)
+    lda CONFIG_BACKGROUND_COLOR
+    sta VIC_B0C
+
+    ; Set foreground color (TODO Make configurable)
+    lda CONFIG_FOREGROUND_COLOR_CHAR
+    jsr KERNAL_CHROUT
+
+    ; Clear screen
+    lda # PETSCII_CLR
+    jsr KERNAL_CHROUT
+
+    ; Set system and work device to default device (8)
+    lda # DEFAULT_DEVICE
+    sta SYS_DEVICE
+    sta WORK_DEVICE
+
+    ; Set to device number of current file, if any
+    lda ZPKERNAL_FA
+    if_ne_then
+        sta SYS_DEVICE
+        sta WORK_DEVICE
+    else_end
+    ;
+    ; Set system and work drive to 0, i.e. single side, or upper side of double sided drive.
+    lda # DEFAULT_DRIVE
+    sta SYS_DRIVE
+    sta WORK_DRIVE
+
+    lda # 0
+    ; Reset NMI entry count
+    sta NMI_ENTRY_COUNT                                     ; NMI_ENTRY_COUNT = 0
+
+    ; Set no program loaded
+    sta LOADED_PROGRAM_NAME
+
+    ; ARGC = 0. Note: ARGC_HI is always 0 because ARGC_MAX = 10
+    sta ARGC_LO
+    sta ARGC_HI
+
+    ; PARGV = &ARGV
+    lda     # <ARGV
+    sta     PARGV_LO
+    lda     # >ARGV
+    sta     PARGV_HI
+
+    rts
+.endproc
+
+.proc RUN
+    ; Set our NMI handler (set here because RUN-STOP RESTORE resets to default handler)
+    lda # <MY_NMI_HANDLER
+    sta KERNAL_NMINV_LO
+    lda # >MY_NMI_HANDLER
+    sta KERNAL_NMINV_HI
+
+    lda # PETSCII_SHIFTED_MODE
+    jsr KERNAL_CHROUT
+
+    from_loop
+        jsr SHOW_PROMPT
+        jsr KEYBOARD_READ_LINE_TO_INPUT_TEXT
+        jsr PROCESS_INPUT_TEXT
+    next
+        jmp _loop
+    end
+
+    ; Does not come here
+.endproc
 
 .proc SHOW_PROMPT
-            lda     # PETSCII_DOLLAR
-            jsr     KERNAL_CHROUT
-            lda     # PETSCII_SPACE
-            jmp     KERNAL_CHROUT
+    lda # PETSCII_DOLLAR
+    jsr KERNAL_CHROUT
+    lda # PETSCII_SPACE
+    jmp KERNAL_CHROUT
 .endproc
 
 .proc KEYBOARD_READ_LINE_TO_INPUT_TEXT
-            ldy     # DEVICE_KEYBOARD
-    L0892:  jsr     KERNAL_CHRIN
-            cmp     # PETSCII_RETURN
-            beq     L089F
-            sta     INPUT_TEXT,y
-            iny
-            bne     L0892
-    L089F:  jsr     KERNAL_CHROUT
-            lda     # PETSCII_NUL
-            sta     INPUT_TEXT,y
-            rts
+    from
+        ldy # 0
+    loop
+        jsr KERNAL_CHRIN                                    ; A+ X+ Y-
+        cmp # PETSCII_RETURN
+        beq _end                                            ; break
+        sta INPUT_TEXT,y
+    next
+        iny
+        bne _loop
+    end
+    
+    jsr KERNAL_CHROUT
+    lda # PETSCII_NUL
+    sta INPUT_TEXT,y
+
+    rts
 .endproc
 
 ;;; summary: Put string
 ;;; in:
 ;;;   X#Y: Nul-terminated string
-;;; used:
-;;;   ZP_2A#ZP_2B
+;;; changed:
+;;;   AX
 .proc OUT_STRING
-            stx     ZP_2A
-            sty     ZP_2B
-            ldy     # 0
-    L08AE:  lda     [ZP_2A],y
-            beq     L08B8
-            jsr     KERNAL_CHROUT
-            iny
-            bne     L08AE
-    L08B8:  rts
+    from
+        stx AL
+        sty AH
+        ldy # 0
+    loop
+        lda [AX],y
+        beq _end                                            ; break
+        jsr KERNAL_CHROUT                                   ; A- X- Y- C0
+    next
+        iny
+        bne _loop
+    end
+
+    rts
 .endproc
 
 ;;; summary: My NMI handler.
@@ -210,877 +295,255 @@ RESUME_RUN:
 ;;;   We need to catch <RUN STOP> + <RESTORE> else we go back to BASIC
 ;;;   Bug: Pressing <RUN STOP> + <RESTORE> during load is handled incorrectly.
 .proc MY_NMI_HANDLER
-            pha
-            lda     MNI_CALL_COUNT
-            beq     L08C1
-            ; Already in an NMI call (not sure how this can happen, maybe on bouncing RESTORE key)
-            pla
-            rti
-    L08C1:
-            ; First NMI call
-            txa
-            pha
-            tya
-            pha
+    ; check I = 1
+
+    ; Check for and prevent re-entry
+    pha
+    lda NMI_ENTRY_COUNT
+    if_ne_then
+        ; Already in an NMI call (not sure how this could happen, maybe on bouncing RESTORE key)
+        pla
+        rti
+    else_end
+
+    ; First entry
+    txa
+    pha
+        tya
+        pha
             ; Disable all CIA-2 interrupts (why?)
-            lda     # $7F
-            sta     CIA_2_ICR
+            lda # $7F
+            sta CIA_2_ICR
             ; Process any pending CIA-2 interrupt.
             ; NMI occured?
-            ldy     CIA_2_ICR
-            bpl     L08D2                                   ; No
-            ; NMI occured yes
-            jmp     KERNAL_NNMI20
+            ldy CIA_2_ICR
+            if_mi_then
+                ; NMI occured yes
+                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
+            else_end
 
-    L08D2:
             ; NMI occured no
             ; RESTORE key was pressed
-            ; STOP key pressed?
-            jsr     KERNAL_STOP
-            beq     L08DA                                   ; Yes
-            ; STOP key not pressed
-            jmp     KERNAL_NNMI20
+            ; STOP key pressed? Z=1 (eq): yes, Z=0 (ne): no
+            jsr KERNAL_STOP
+            if_ne_then
+                ; STOP key was not pressed
+                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
+            else_end
 
-    L08DA:
-            ; STOP key pressed
-            inc     MNI_CALL_COUNT
-            ; Set BASIC ROM, IO DEVICES, KERNAL ROM
-            lda     CPU_PORT_DATA
-            ora     # CPU_PORT_MEMORY_CONFIGURATION_DATA_SET_BASIC_ROM_IO_AREA_KERNAL_ROM
-            sta     CPU_PORT_DATA
+            ; STOP key was pressed
+            inc NMI_ENTRY_COUNT                          ; Prevent re-entry
 
-            lda     # >SCREEN_TEXT_RAM_BASE
-            sta     KVAR_HIBASE
-            lda     KVAR_COLOR
+            ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
+            lda # CPU_PORT_DATA_DEFAULT
+            sta CPU_PORT_DATA
+
+            ; Set text screen base to default (in case it got changed).
+            lda # >SCREEN_TEXT_RAM_BASE
+            sta KVAR_HIBASE
+
+            ; Save and restore colors because called Kernal routine changes them.
+            lda KVAR_COLOR
             pha
-                lda     VIC_EC
+                lda VIC_EC
                 pha
-                    lda     VIC_B0C
+                    lda VIC_B0C
                     pha
-                        jsr     KERNAL_IOINIT
-                        jsr     KERNAL_CINT
+                        jsr KERNAL_IOINIT
+                        jsr KERNAL_CINT
                     pla
-                    sta     VIC_B0C
+                    sta VIC_B0C
                 pla
-                sta     VIC_EC
+                sta VIC_EC
             pla
-            sta     KVAR_COLOR
-            ldx     SAVE_S
+            sta KVAR_COLOR
+
+            ; Restore stack pointer (stack might have been messed up).
+            ldx SAVE_S
             txs
+
+            ; Enable interrupts so we can do file I/O.
             cli
+
             ; Close all files 14..1. Why not call KERNAL_CLALL?
-            ldx     # 15
-    L090D:  txa
-            pha
-                jsr KERNAL_CLOSE
-            pla
-            tax
-            dex
-            bne     L090D
+            from
+                ldx # 15
+            loop
+                txa
+                pha
+                    jsr KERNAL_CLOSE                        ; A+ X+ Y+ C+ N+ V? Z+
+                pla
+                tax
+            next
+                dex
+                bne _loop
+            end
+
             lda     # PETSCII_RETURN
             jsr     KERNAL_CHROUT
-            dec     MNI_CALL_COUNT
-            jmp     RESUME_RUN
+
+            dec     NMI_ENTRY_COUNT                          ; Allow entry
+
+            jmp     RUN                                     ; Resume
 .endproc
-
-SAVE_KERNAL_NMINV_LO:   .byte   0                           ; $0922
-SAVE_KERNAL_NMINV_HI:   .byte   0                           ; $0923
-SAVE_S:                 .byte   0                           ; $0924
-MNI_CALL_COUNT:         .byte   0                           ; $0925
-
-;;; summary: Dead code
-.proc L0926
-            lda     # 0
-.endproc
-
-;;; summary: Dead code
-.proc L0928
-            ldy     # 0
-            sta     [ZP_1A],y
-            inc     ZP_1A
-            bne     L0932
-            inc     ZP_1B
-    L0932:  rts
-.endproc
-
-;;; summary: Dead code
-.proc L0933
-            lda     ZP_1A
-            bne     L0939
-            dec     ZP_1B
-    L0939:  dec     ZP_1A
-            ldy     # 0
-            lda     [ZP_1A],y
-            tax
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0941
-            jsr     L0933
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_FB
-            inx
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_FC
-            inx
-            stx     ZP_4C
-            lda     # 0
-            jmp     L097F
-.endproc
-
-;;; summary: Dead code
-.proc L0957
-            jsr     L0933
-            stx     ZP_4C
-            lda     # 2
-            bne     L096A                                       ; bra
-.endproc
-
-;;; summary: Dead code
-.proc L0960
-            jsr     L0933
-            lda     KERNAL_TBUFFR,x
-            inx
-            inx
-            stx     ZP_4C
-.endproc
-
-;;; summary: Dead code
-.proc L096A
-            cmp     # 2
-            bne     L0979
-            ldx     REDIRECT_OUTPUT_ACTIVE
-            bne     L0979
-            jsr     KERNAL_CLRCHN
-            jmp     L097D
-    L0979:  tax
-            jsr     KERNAL_CHKOUT
-    L097D:  lda     # 1
-.endproc
-
-;;; summary: Dead code
-.proc L097F
-            sta     ZP_4D
-            ldx     ZP_4C
-            lda     KERNAL_TBUFFR,x
-            inx
-            sta     ZP_FD
-            lda     KERNAL_TBUFFR,x
-            inx
-            sta     ZP_FE
-            stx     ZP_4C
-            ldy     # $FF                                       ; -1
-.endproc
-
-;;; summary: Dead code
-.proc L0993
-            iny
-            lda     [ZP_FD],y
-            bne     L09A1
-            ldy     ZP_4D
-            bne     L099E
-            sta     [ZP_FB],y
-    L099E:  jmp     KERNAL_CLRCHN
-
-    L09A1:
-            cmp     # PETSCII_PERCENT
-            bne     L0A08
-            jsr     L0C33
-            lda     [ZP_FD],y
-            cmp     # PETSCII_LATIN_LETTER_D
-            bne     L09B4
-            jsr     L0A3F
-            jmp     L0C9F
-
-    L09B4:  cmp     # PETSCII_LATIN_LETTER_U
-            bne     L09BE
-            jsr     L0A3B
-            jmp     L0C9F
-
-    L09BE:  cmp     # PETSCII_LATIN_LETTER_X
-            bne     L09C8
-            jsr     L0B7F
-            jmp     L0C9F
-
-    L09C8:  cmp     # PETSCII_LATIN_LETTER_O
-            bne     L09D2
-            jsr     L0BBE
-            jmp     L0C9F
-
-    L09D2:  cmp     # PETSCII_LATIN_LETTER_C
-            bne     L09DC
-            jsr     L0BFB
-            jmp     L0C9F
-
-    L09DC:  cmp     # PETSCII_LATIN_LETTER_S
-            bne     L09E6
-            jsr     L0C0A
-            jmp     L0C9F
-
-    L09E6:  cmp     # PETSCII_LATIN_LETTER_F
-            bne     L09F0
-            jsr     L0AEA
-            jmp     L0C9F
-
-    L09F0:  cmp     # PETSCII_LATIN_LETTER_G
-            bne     L09FA
-            jsr     L0AB2
-            jmp     L0C9F
-
-    L09FA:  cmp     # PETSCII_NUL
-            beq     L0A04
-            jsr     L0A0E
-            jmp     L0993
-
-    L0A04:  dey
-            jmp     L0993
-
-    L0A08:  jsr     L0A0E
-            jmp     L0993
-.endproc
-
-;;; summary: Dead code
-.proc L0A0E
-            sty     ZP_51
-            ldy     ZP_4D
-            beq     L0A19
-            ldy     ZP_51
-            jmp     KERNAL_CHROUT
-.endproc
-
-;;; summary: Dead code
-.proc L0A19
-            sta     [ZP_FB],y
-            inc     ZP_FB
-            bne     L0A21
-            inc     ZP_FC
-    L0A21:  ldy     ZP_51
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0A24
-            sty     ZP_4B
-            ldx     ZP_4C
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_5A
-            inx
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_5B
-            inx
-            stx     ZP_4C
-            lda     # 0
-            sta     ZP_58
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0A3B
-            lda     # 1
-            bne     L0A41                                       ; bra
-.endproc
-
-;;; summary: Dead code
-.proc L0A3F
-            lda     # 0
-.endproc
-
-;;; summary: Dead code
-.proc L0A41
-            sta     ZP_51
-            jsr     L0A24
-            sta     ZP_54
-            lda     ZP_5B
-            bpl     L0A67
-            ldy     ZP_51
-            bne     L0A67
-            eor     # $FF
-            sta     ZP_5B
-            lda     ZP_5A
-            eor     # $FF
-            sta     ZP_5A
-            inc     ZP_5A
-            bne     L0A60
-            inc     ZP_5B
-    L0A60:  lda     # PETSCII_HYPHEN_MINUS
-            sta     L16CA
-            inc     ZP_54
-    L0A67:  ldx     # $04
-    L0A69:  ldy     # $00
-    L0A6B:
-            lda     ZP_5A
-            sec
-            sbc     L0AA8,x
-            sta     ZP_51
-            lda     ZP_5B
-            sbc     L0AAD,x
-            bcc     L0A83
-            sta     ZP_5B
-            lda     ZP_51
-            sta     ZP_5A
-            iny
-            bne     L0A6B
-    L0A83:  tya
-            beq     L0A88
-            sta     ZP_58
-    L0A88:  lda     ZP_58
-            beq     L0A96
-            lda     HEX_DIGIT_TABLE,y
-            ldy     ZP_54
-            sta     L16CA,y
-            inc     ZP_54
-    L0A96:  dex
-            bpl     L0A69
-            ldx     ZP_54
-.endproc
-
-;;; summary: Dead code
-.proc L0A9B
-            ldy     ZP_4B
-            lda     ZP_58
-            bne     L0AA7
-            lda     # PETSCII_DIGIT_ZERO
-            sta     L16CA,x
-            inx
-    L0AA7:  rts
-.endproc
-
-;;; summary: Unused storage
-L0AA8:  .byte   1
-        .byte   10
-        .byte   100
-        .byte   $E8                                         ; 232? inx
-        .byte   $10                                         ; 16?
-
-;;; summary: Unused storage
-L0AAD:  .byte   0
-        .byte   0
-        .byte   0
-        .byte   3                                           ; 3
-        .byte   39                                          ; 39 screen width - 1 ?
-
-;;; summary: Dead code
-.proc L0AB2
-        lda     CPU_PORT_DATA
-        pha
-            ora     # %00000001                                 ; KERNAL RAM
-            sta     CPU_PORT_DATA
-            sty     ZP_4B
-            clc
-            lda     # $3C                                       ; 60
-            adc     ZP_4C
-            ldy     # 3
-            jsr     LBBA2
-            jsr     LBDDD
-            ldy     # 0
-            ldx     # 0
-    L0ACC:  lda     STACK_BASE,y
-            beq     L0ADD
-            cmp     # PETSCII_SPACE
-            beq     L0AD9
-            sta     L16CA,x
-            inx
-    L0AD9:  iny
-            jmp     L0ACC
-
-    L0ADD:
-            clc
-            lda     ZP_4C
-            adc     # 5     ; COMMAND_NAME_SIZE?
-            sta     ZP_4C
-            ldy     ZP_4B
-        pla
-        sta     CPU_PORT_DATA
-        rts
-.endproc
-
-;;; summary: Dead code
-.proc L0AEA
-            lda     CPU_PORT_DATA
-            pha
-                ora     # %00000001                                 ; KERNAL RAM
-                sta     CPU_PORT_DATA
-                sty     ZP_4B
-                clc
-                lda     # $3C                                       ; 60
-                adc     ZP_4C
-                ldy     # 3
-                jsr     LBBA2
-                jsr     LBDDD
-                lda     # 0
-                sta     ZP_56
-                sta     ZP_55
-                sta     L0053                                     ; todo: no a:
-                lda     ZP_50
-                bne     L0B0E
-                inc     ZP_56
-        L0B0E:  bpl     L0B14
-                lda     # 6
-                sta     ZP_50
-        L0B14:  ldy     # 0
-                ldx     # 0
-        L0B18:  lda     STACK_BASE,y
-                beq     L0B52
-                cmp     # $20
-                beq     L0B4E
-                cmp     # $45
-                bne     L0B30
-                jsr     L0B5E
-                lda     # 0
-                sta     ZP_55
-                inc     L0053                                       ; TODO ZP_53
-                lda     # 45
-        L0B30:  sta     ZP_51
-                lda     ZP_55
-                beq     L0B3C
-                lda     ZP_50
-                beq     L0B4E
-                dec     ZP_50
-        L0B3C:  lda     ZP_51
-                cmp     # $2E
-                bne     L0B48
-                lda     ZP_56
-                bne     L0B52
-                inc     ZP_55
-        L0B48:  lda     ZP_51
-                sta     L16CA,x
-                inx
-        L0B4E:  iny
-                jmp     L0B18
-
-        L0B52:  clc
-                lda     ZP_4C
-                adc     # 5         ; COMMAND_NAME_SIZE ?
-                sta     ZP_4C
-                ldy     ZP_4B
-            pla
-            sta     CPU_PORT_DATA
-    L0B5E:  lda     ZP_56
-            bne     L0B7E
-            lda     L0053                                       ; TODO ZP_53
-            bne     L0B7E
-            lda     ZP_55
-            bne     L0B70
-            lda     # PETSCII_FULL_STOP
-            sta     L16CA,x
-            inx
-    L0B70:  lda     ZP_50
-            beq     L0B7E
-            lda     # PETSCII_DIGIT_ZERO
-    L0B76:  sta     L16CA,x
-            inx
-            dec     ZP_50
-            bne     L0B76
-    L0B7E:  rts
-.endproc
-
-;;; summary: Dead code
-.proc L0B7F
-            jsr     L0A24
-            ldx     # 0
-            lda     # 4
-            sta     ZP_5C
-    L0B88:  lda     ZP_5B
-            lsr     a
-            lsr     a
-            lsr     a
-            lsr     a
-            tay
-            bne     L0B95
-            lda     ZP_58
-            beq     L0B9E
-    L0B95:  lda     HEX_DIGIT_TABLE,y
-            sta     L16CA,x
-            inx
-            stx     ZP_58
-    L0B9E:  ldy     # 4
-    L0BA0:  asl     ZP_5A
-            rol     ZP_5B
-            dey
-            bne     L0BA0
-            dec     ZP_5C
-            bne     L0B88
-            jmp     L0A9B
-.endproc
-
-;;; summary: Unused storage
-HEX_DIGIT_TABLE:    .byte "0123456789abcdef"
-
-;;; summary: Dead code
-.proc L0BBE
-            jsr     L0A24
-            ldx     # 0
-            lda     ZP_5B
-            bpl     L0BCF
-            lda     # PETSCII_DIGIT_ONE
-            sta     L16CA
-            inx
-            stx     ZP_58
-    L0BCF:  lda     # 5         ; COMMAND_NAME_SIZE ?
-            sta     ZP_5C
-    L0BD3:  lda     ZP_5B
-            lsr     a
-            lsr     a
-            lsr     a
-            lsr     a
-            and     # %00000111
-            tay
-            bne     L0BE2
-            lda     ZP_58
-            bne     L0BE9
-    L0BE2:  lda     HEX_DIGIT_TABLE,y
-            sta     L16CA,x
-            inx
-    L0BE9:  stx     ZP_58
-            ldy     # 3
-    L0BED:  asl     ZP_5A
-            rol     ZP_5B
-            dey
-            bne     L0BED
-            dec     ZP_5C
-            bne     L0BD3
-            jmp     L0A9B
-.endproc
-
-;;; summary: Dead code
-.proc L0BFB
-            ldx     ZP_4C
-            lda     KERNAL_TBUFFR,x
-            sta     L16CA
-            inx
-            inx
-            stx     ZP_4C
-            ldx     # 1
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0C0A
-            sty     ZP_4B
-            ldx     ZP_4C
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_20
-            inx
-            lda     KERNAL_TBUFFR,x
-            sta     ZP_21
-            inx
-            stx     ZP_4C
-            ldy     # 0
-    L0C1E:  lda     ZP_50
-            beq     L0C2E
-            lda     [ZP_20],y
-            beq     L0C2E
-            sta     L16CA,y
-            iny
-            dec     ZP_50
-            bne     L0C1E
-    L0C2E:  tya
-            tax
-            ldy     ZP_4B
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0C33
-            lda     # 0
-            sta     ZP_4E
-            iny
-            lda     [ZP_FD],y
-            cmp     # PETSCII_HYPHEN_MINUS
-            bne     L0C41
-            inc     ZP_4E
-            iny
-    L0C41:  lda     [ZP_FD],y
-            cmp     # PETSCII_DIGIT_ZERO
-            beq     L0C49
-            lda     # PETSCII_SPACE
-    L0C49:  sta     ZP_52
-            jsr     L0C69
-            sta     ZP_4F
-            lda     [ZP_FD],y
-            cmp     # PETSCII_FULL_STOP
-            bne     L0C5D
-            iny
-            jsr     L0C69
-            jmp     L0C5F
-    L0C5D:  lda     # $FF
-    L0C5F:  sta     ZP_50
-            lda     [ZP_FD],y
-            cmp     # $4C                                       ; 76 "L"? 
-            bne     L0C68
-            iny
-    L0C68:  rts
-.endproc
-
-;;; summary: Dead code
-.proc L0C69
-            lda     [ZP_FD],y
-            cmp     # PETSCII_ASTERISK
-            bne     L0C7A
-            ldx     ZP_4C
-            lda     KERNAL_TBUFFR,x
-            inx
-            inx
-            stx     ZP_4C
-            iny
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0C7A
-            lda     # 0
-            sta     ZP_5A
-    L0C7E:  lda     [ZP_FD],y
-            cmp     # PETSCII_COLON
-            bcs     L0C9C
-            cmp     # PETSCII_DIGIT_ZERO
-            bcc     L0C9C
-            sbc     # PETSCII_DIGIT_ZERO
-            sta     ZP_5B
-            lda     ZP_5A
-            asl     ZP_5A
-            asl     ZP_5A
-            adc     ZP_5A
-            asl     a
-            adc     ZP_5B
-            sta     ZP_5A
-            iny
-            bne     L0C7E
-    L0C9C:  lda     ZP_5A
-            rts
-.endproc
-
-;;; summary: Dead code
-.proc L0C9F
-            stx     ZP_54
-            lda     ZP_4E
-            bne     L0CA8
-            jsr     L0CC1
-    L0CA8:  ldx     # 0
-    L0CAA:  cpx     ZP_54
-            beq     L0CB7
-            lda     L16CA,x
-            jsr     L0A0E
-            inx
-            bne     L0CAA
-    L0CB7:  lda     ZP_4E
-            beq     L0CBE
-            jsr     L0CC1
-    L0CBE:  jmp     L0993
-
-    L0CC1:  sec
-            lda     ZP_4F
-            sbc     ZP_54
-            bcc     L0CD3
-            tax
-            beq     L0CD3
-    L0CCB:  lda     ZP_52
-            jsr     L0A0E
-            dex
-            bne     L0CCB
-    L0CD3:  rts
-.endproc
-
-;;; summary: Dead code
-.proc L0CD4
-            tay
-            dey
-            lda     L17E7,y
-            beq     L0CDD
-            sec                                             ; FAIL
-            rts
-    L0CDD:  lda     ZPKERNAL_DFLTN                          ; Current input device (default 0 keyboard)
-            beq     L0CEE
-            jsr     KERNAL_CHRIN
-            pha
-                jsr     KERNAL_READST
-                sta     L17E7,y
-            pla
-            clc                                             ; OK
-            rts
-    L0CEE:  ldx     L17F7
-            cpx     L17F8
-            bne     L0D2B
-            sty     L0D33
-            tay
-    L0CFA:  jsr     KERNAL_CHRIN
-            sta     L174A,y
-            iny
-            cmp     # PETSCII_RETURN
-            bne     L0CFA
-            jsr     KERNAL_CHROUT
-            sty     L17F8
-            sty     L17F7
-            lda     L174A
-            cmp     # PETSCII_FULL_STOP
-            bne     L0D26
-            lda     L174B
-            cmp     # PETSCII_RETURN
-            bne     L0D26
-            ldy     L0D33
-            lda     # 1
-            sta     L17E7,y
-            sec
-            rts
-
-    L0D26:  ldx     # 0
-            stx     L17F7
-    L0D2B:  lda     L174A,x
-            inc     L17F7
-            clc
-            rts
-.endproc
-
-;;; summary: Unused storage
-L0D33:  .byte   0
 
 ;;; summary: Process input text
 ;;; in:
 ;;;   INPUT_TEXT: Input text, nul terminated
 .proc PROCESS_INPUT_TEXT
-            ldy     # 0
-            sty     ZP_29                                       ; Count arguments
-            sty     REDIRECT_INPUT_ACTIVE                       ; Redirect input inactive
-            sty     REDIRECT_OUTPUT_ACTIVE                      ; Redirect output inactive
-            ldx     # $FF                                       ; -1
-            ; Skip any SPACE and NO_BREAK_SPACE
-    L0D40:  inx
-            lda     INPUT_TEXT,x
-            bne     L0D49
-            jmp     L0DCE                                       ; Empty input
-    L0D49:  cmp     # PETSCII_SPACE
-            beq     L0D4F
-            cmp     # PETSCII_NO_BREAK_SPACE
-    L0D4F:  beq     L0D40
-            ; Redirect input from file?
-            cmp     # PETSCII_LESS_THAN_SIGN
-            bne     L0D67                                   ; No
+    ldy # 0
+    sty ARGC_LO
+    sty REDIRECT_INPUT_ACTIVE                               ; Redirect input inactive
+    sty REDIRECT_OUTPUT_ACTIVE                              ; Redirect output inactive
+
+    from OUTER
+        ldx # $FF                                           ; -1
+    loop
+        ; Skip any SPACE and NO_BREAK_SPACE
+        inx
+        lda INPUT_TEXT,x
+        if_eq_then
+            jmp OUTER::_end                                ; break
+        else_end
+
+        ; Skip any space or no-break space    
+        cmp # PETSCII_SPACE
+        beq OUTER::_loop
+        cmp # PETSCII_NO_BREAK_SPACE
+        beq OUTER::_loop
+            
+        ; Redirect input from file?
+        cmp # PETSCII_LESS_THAN_SIGN
+        if_eq_then
             ; Yes
-            jsr     REDIRECT_INPUT_FROM_FILE
-            bcc     L0D64                                   ; OK
+            jsr REDIRECT_INPUT_FROM_FILE
+            bcc OUTER::_loop                                ; OK -> continue
+
             ; Error redirecting input from file
-            ldx     # <RESOURCE_STRING_CANT_OPEN_INPUT_FILE
-            ldy     # >RESOURCE_STRING_CANT_OPEN_INPUT_FILE
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+            ldx # <RESOURCE_STRING_CANT_OPEN_INPUT_FILE
+            ldy # >RESOURCE_STRING_CANT_OPEN_INPUT_FILE
+            jsr OUT_STRING
+            jsr RESET_FILE_IO
+            rts
+        else_end
 
-    L0D64:  jmp     L0D40
-
-    L0D67:
-            ; Redirect output to file or printer?
-            cmp     # PETSCII_GREATER_THAN_SIGN
-            bne     L0D98                                   ; No
-            ; Yes
+        ; Redirect output to file or printer?
+        cmp # PETSCII_GREATER_THAN_SIGN
+        if_eq_then
             inx
-            lda     INPUT_TEXT,x
-            cmp     # PETSCII_GREATER_THAN_SIGN
-            bne     L0D85
-            ; Redirect output to printer
-            jsr     REDIRECT_OUTPUT_TO_PRINTER
-            bcc     L0D82
-            ; Error redirecting output to prinyer
-            ldx     # <RESOURCE_STRING_PRINTER_NOT_PRESENT
-            ldy     # >RESOURCE_STRING_PRINTER_NOT_PRESENT
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+            lda INPUT_TEXT,x
+            cmp # PETSCII_GREATER_THAN_SIGN
+            if_eq_then
+                ; Redirect output to printer
+                jsr REDIRECT_OUTPUT_TO_PRINTER
+                bcc OUTER::_loop                            ; OK -> continue
 
-    L0D82:  jmp     L0D40
+                ; Error redirecting output to prinyer
+                ldx # <RESOURCE_STRING_PRINTER_NOT_PRESENT
+                ldy # >RESOURCE_STRING_PRINTER_NOT_PRESENT
+                jsr OUT_STRING
+                jsr RESET_FILE_IO
+                rts
+            else_end
 
-    L0D85:
             ; Redirect output to file
             dex
-            jsr     REDIRECT_OUTPUT_TO_FILE
-            bcc     L0D95
+            jsr REDIRECT_OUTPUT_TO_FILE
+            bcc OUTER::_loop                                ; OK -> continue
+
             ; Error redirecting output to file
-            ldx     # <RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
-            ldy     # >RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+            ldx # <RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
+            ldy # >RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
+            jsr OUT_STRING
+            jsr RESET_FILE_IO
+            rts
+        else_end
 
-    L0D95:  jmp     L0D40
-
-    L0D98:
-            ; We have the start of an argument.
-            inc     ZP_29
-            ; Quoted argument?
-            cmp     # PETSCII_QUOTATION_MARK
-            bne     L0DB5                                   ; No
+        ; We have the start of an argument.
+        inc ARGC_LO
+        ; Quoted argument?
+        cmp # PETSCII_QUOTATION_MARK
+        if_eq_then
             ; Yes
             inx
-            jsr     PROC_A
+            jsr SET_NEXT_ARGV
             dex
-    L0DA3:  inx
-            lda     INPUT_TEXT,x
-            beq     L0DCE                                   ; End of input text? Yes
-            ; No
-            ; Closing quotation mark?
-            cmp     # PETSCII_QUOTATION_MARK
-            bne     L0DA3                                       ; No
+
+            from_loop
+                inx
+                lda INPUT_TEXT,x
+                beq OUTER::_end                             ; EOI -> break
+            next
+                ; Closing quotation mark?
+                cmp # PETSCII_QUOTATION_MARK
+                bne _loop
+            end
+
             ; Found closing quotation mark
-            lda     # PETSCII_NUL
-            sta     INPUT_TEXT,x
-            jmp     L0D40
+            lda # PETSCII_NUL
+            sta INPUT_TEXT,x
+            jmp OUTER::_loop                                ; continue
+        else_end
 
-    L0DB5:  jsr     PROC_A
-    L0DB8:  inx
-            lda     INPUT_TEXT,x
-            beq     L0DCE
-            cmp     # PETSCII_SPACE
-            beq     L0DC4
-            cmp     # PETSCII_NO_BREAK_SPACE
-    L0DC4:  bne     L0DB8
-            lda     # PETSCII_NUL
-            sta     INPUT_TEXT,x
-            jmp     L0D40
+        jsr SET_NEXT_ARGV
 
-    L0DCE:
-            ; Finished parsing input text
-            ; Have we got any arguments?
-            lda     ZP_29
-            bne     L0DD5                                       ; Yes
-            ; No
-            jmp     RESET_FILE_IO
+        from_loop INNER
+            inx
+            lda INPUT_TEXT,x
+            beq OUTER::_end                                 ; EOI -> break
+            cmp # PETSCII_SPACE
+            beq INNER::_END                                 ; break
+        next
+            cmp # PETSCII_NO_BREAK_SPACE
+            bne INNER::_loop
+        end
 
-    L0DD5:
-            ; We have got arguments
-            lda     ARGV_0_LO
-            sta     ZP_2A
-            lda     ARGV_0_HI
-            sta     ZP_2B
-            ldy     # 0
-    L0DE1:
-            lda     [ZP_2A],y
-            beq     L0DF0
-            cmp     # PETSCII_LATIN_LETTER_A
-            bcc     L0DED                                       ; A < PETSCII_LATIN_LETTER_A
-            ; A >= PETSCII_LATIN_LETTER_A
-            cmp     # PETSCII_LATIN_LETTER_Z + 1
-            bcc     L0DF3                                       ; PETSCII_LATIN_LETTER_A <= A <= PETSCII_LATIN_LETTER_Z
-    L0DED:  iny
-            bne     L0DE1                                       ; bra
-    L0DF0:
-            jmp     RESET_FILE_IO
+        lda # PETSCII_NUL
+        sta INPUT_TEXT,x
+    next
+        jmp _loop
+    end
 
-    L0DF3:
-            ; PETSCII_LATIN_LETTER_A <= A <= PETSCII_LATIN_LETTER_Z
-            jsr     TRY_BUILT_IN_COMMAND
-            jsr     LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-            bcs     L0DFE
-            jsr     EXECUTE_PROGRAM
-    L0DFE:  jmp     RESET_FILE_IO
+    ; Finished parsing input text
+    ; Have we got any arguments?
+    lda ARGC_LO
+    if_ne_then
+        ; We have got arguments
+        lda ARGV_0_LO
+        sta ZP_23
+        lda ARGV_0_HI
+        sta ZP_24
+        ldy # 0
+        lda [ZP_23],y
+        if_ne_then
+            ; ARGV[0][0] != PETSCII_NUL
+            jsr TRY_BUILT_IN_COMMAND
+            ; If built-in, returns by pulling return address.
+            jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+            if_cc_then
+                jsr EXECUTE_PROGRAM
+            else_end
+        else_end
+    else_end
+
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 ;;; summary: Load program with name from `LOADED_PROGRAM_NAME`, if not already done so.
+;;; in:
+;;;   ZP_23#ZP_24: Name of program to load.
+;;; out:
+;;;   C: 0=OK 1=FAIL
 .proc LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-            lda     # <LOADED_PROGRAM_NAME
-            sta     ZP_57
-            lda     # >LOADED_PROGRAM_NAME
-            sta     ZP_58
-            jsr     STRING_COMPARE_2A_57
-            bne     LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
-            clc
-            rts
+    lda # <LOADED_PROGRAM_NAME
+    sta ZP_25
+    lda # >LOADED_PROGRAM_NAME
+    sta ZP_26
+    jsr STRING_COMPARE_23_25
+    bne LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
+    clc                                                     ; OK
+    rts
 .endproc
 
 ;;; summary: load program from work disk or else from system disk
@@ -1104,7 +567,7 @@ L0D33:  .byte   0
     L0E2F:
             ldy     # 19
     L0E31:
-            lda     [ZP_2A],y
+            lda     [ZP_23],y
             sta     LOADED_PROGRAM_NAME,y
             dey
             bpl     L0E31
@@ -1115,55 +578,68 @@ L0D33:  .byte   0
 ;;; summary: Execute loaded program
 ;;; notes:
 ;;;   Entry point is at $1800
+;;; changed: A+ X+ Y+ ZP_23#ZP_24
 .proc EXECUTE_PROGRAM
-            lda     ZP_29
-            sta     ARGC_LO
-            lda     # 0
-            sta     ARGC_HI
-            lda     # <ARGV_0
-            sta     ARGV_LO
-            lda     # >ARGV_0
-            sta     ARGV_HI
-            lda     KVAR_COLOR
-            sta     SAVE_KVAR_COLOR
-            lda     VIC_EC
-            sta     SAVE_VIC_EC
-            lda     VIC_B0C
-            sta     SAVE_VIC_B0C
-            jsr     PROGRAM_ENTRYPOINT
-            lda     SAVE_VIC_EC
-            sta     VIC_EC
-            lda     SAVE_VIC_B0C
-            sta     VIC_B0C
-            lda     SAVE_KVAR_COLOR
-            sta     KVAR_COLOR
-            ; Set all character color
-            ldx     # >SCREEN_COLOR_RAM_BASE
-            ldy     # <SCREEN_COLOR_RAM_BASE
-            sty     ZP_2A
-    L0E7C:  stx     ZP_2B
-    L0E7E:  sta     [ZP_2A],y
-            iny
-            bne     L0E7E
-            inx
-            cpx     # SCREEN_COLOR_RAM_PAGE_LAST + 1
-            bne     L0E7C
-            rts
-.endproc
+    ; Save colors
+    lda KVAR_COLOR
+    sta SAVE_KVAR_COLOR
+    lda VIC_EC
+    sta SAVE_VIC_EC
+    lda VIC_B0C
+    sta SAVE_VIC_B0C
 
-SAVE_KVAR_COLOR:    .byte   0
-SAVE_VIC_EC:        .byte   0
-SAVE_VIC_B0C:       .byte   0
+    ; Call program's entrypoint
+    jsr PROGRAM_ENTRYPOINT
+
+    ; Restore colors
+    lda SAVE_VIC_EC
+    sta VIC_EC
+    lda SAVE_VIC_B0C
+    sta VIC_B0C
+    lda SAVE_KVAR_COLOR
+    sta KVAR_COLOR
+    ; Set all character color
+    from OUTER
+        ldx # >SCREEN_COLOR_RAM_BASE
+        ldy # <SCREEN_COLOR_RAM_BASE
+        sty ZP_23
+    loop
+        from INNER
+            stx ZP_24
+        loop
+            sta [ZP_23],y
+        next
+            iny
+            bne _loop
+        end
+    next
+        inx
+        cpx # SCREEN_COLOR_RAM_PAGE_LAST + 1
+        bne OUTER::_loop
+    end
+
+    rts
+.endproc
 
 ;;; summary: Back to default file I/O
 .proc RESET_FILE_IO
-            lda     # REDIRECT_INPUT_FA
-            jsr     KERNAL_CLOSE
-            lda     # REDIRECT_OUTPUT_FA
-            jsr     KERNAL_CLOSE
-            lda     # DISK_COMMAND_FA
-            jsr     KERNAL_CLOSE
-            jmp     KERNAL_CLRCHN
+
+    lda # REDIRECT_INPUT_FA
+    jsr KERNAL_CLOSE
+
+    lda # REDIRECT_OUTPUT_FA
+    jsr KERNAL_CLOSE
+
+    lda # DISK_COMMAND_FA
+    jsr KERNAL_CLOSE
+
+    jsr KERNAL_CLRCHN
+
+    lda # 0
+    sta REDIRECT_INPUT_ACTIVE                               ; Redirect input inactive
+    sta REDIRECT_OUTPUT_ACTIVE                              ; Redirect output inactive
+
+    rts
 .endproc
 
 RESOURCE_STRING_COMMAND_NOT_FOUND:
@@ -1182,152 +658,194 @@ RESOURCE_STRING_PRINTER_NOT_PRESENT:
 ;;; in:
 ;;;   X: Device
 ;;;   Y: Drive
-;;;   ZP_2A#ZP_2B   File name
+;;;   ZP_23#ZP_24   File name
 .proc LOAD_PROGRAM
-            stx     LOAD_PROGRAM_SAVE_X
-            tya
-            clc
-            adc     # PETSCII_DIGIT_ZERO
-            sta     FILE_NAME_TEXT_DRIVE
-            lda     # PETSCII_COLON
-            sta     FILE_NAME_TEXT_COLON
-            ldy     # 0
-            ldx     # FILE_NAME_TEXT_COLON_OFFSET_NAME      ; 2
-    L0F08:  lda     [ZP_2A],y
-            beq     L0F13
-            sta     FILE_NAME_TEXT,x
-            iny
-            inx
-            bne     L0F08
+    stx LOAD_PROGRAM_SAVE_X_DEVICE
+    tya
+    clc
+    adc # PETSCII_DIGIT_ZERO
+    sta FILE_NAME_TEXT_DRIVE
+    lda # PETSCII_COLON
+    sta FILE_NAME_TEXT_COLON
+    from
+        ldy # 0
+        ldx # FILE_NAME_TEXT_COLON_OFFSET_NAME              ; 2
+    loop
+        lda [ZP_23],y
+        beq _end                                            ; NUL -> break
+        sta     FILE_NAME_TEXT,x
+    next
+        iny
+        inx
+        bne _loop
+    end
+    
     ; Add ".sh"
-    L0F13:  lda     # PETSCII_FULL_STOP
-    L0F15:  sta     FILE_NAME_TEXT,x
-            inx
-            lda     # PETSCII_LATIN_LETTER_S
-            sta     FILE_NAME_TEXT,x
-            inx
-            lda     # PETSCII_LATIN_LETTER_H
-            sta     FILE_NAME_TEXT,x
-            inx
-            txa
-            ldx     # <FILE_NAME_TEXT
-            ldy     # >FILE_NAME_TEXT
-            jsr     KERNAL_SETNAM
-    L0F2D:  ldx     LOAD_PROGRAM_SAVE_X
-            lda     # FILE_FA
-            tay
-            jsr     KERNAL_SETLFS
-            lda     # KERNAL_LOAD_LOAD
-            jsr     KERNAL_LOAD
-            bcc     L0F6C                                   ; OK
-            ; Load error
-            cmp     # KERNAL_ERROR_DEVICE_NOT_PRESENT
-            bne     L0F42
+    lda # PETSCII_FULL_STOP
+    sta FILE_NAME_TEXT,x
+    inx
+    lda # PETSCII_LATIN_LETTER_S
+    sta FILE_NAME_TEXT,x
+    inx
+    lda # PETSCII_LATIN_LETTER_H
+    sta FILE_NAME_TEXT,x
+    inx                                                     ; X = FILE_NAME_TEXT.LENGTH
+    txa                                                     ; A = X = FILE_NAME_TEXT.LENGTH
+    ldx # <FILE_NAME_TEXT
+    ldy # >FILE_NAME_TEXT
+    jsr KERNAL_SETNAM
+    ldx LOAD_PROGRAM_SAVE_X_DEVICE
+    lda # FILE_FA                                           ; A = FILE_FA = FILE_SA
+    tay                                                     ; Y = FILE_SA
+    jsr KERNAL_SETLFS
+    lda # KERNAL_LOAD_LOAD
+    jsr KERNAL_LOAD
+    if_cs_then
+        ; Load error
+        cmp # KERNAL_ERROR_DEVICE_NOT_PRESENT
+        if_eq_then
             ; Device not present
             rts
+        else_end
 
-    L0F42:  lda     # DISK_COMMAND_FA                       ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            ldx     LOAD_PROGRAM_SAVE_X
-            tay
-            jsr     KERNAL_SETLFS
-            lda     # 0                                     ; No name
-            jsr     KERNAL_SETNAM
-            jsr     KERNAL_OPEN
-            bcs     L0F63
-            ldx     # DISK_COMMAND_FA
-            jsr     KERNAL_CHKIN
-            bcs     L0F63
-    L0F5C:  jsr     KERNAL_CHRIN
-            cmp     # PETSCII_RETURN
-            bne     L0F5C
-    L0F63:  lda     # DISK_COMMAND_FA
-            jsr     KERNAL_CLOSE
-            jsr     KERNAL_CLRCHN
-            sec                                             ; FAIL
-    L0F6C:  rts
+        ; Device present. (Attempt to) read (but not show) disk status.
+        lda # DISK_COMMAND_FA                       ; DISK_COMMAND_FA = DISK_COMMAND_SA
+        ldx LOAD_PROGRAM_SAVE_X_DEVICE
+        tay
+        jsr KERNAL_SETLFS
+        lda # 0                                     ; No name
+        jsr KERNAL_SETNAM
+        jsr KERNAL_OPEN
+        if_cc_then
+            ldx # DISK_COMMAND_FA
+            jsr KERNAL_CHKIN
+            if_cc_then
+                from_loop
+                    jsr KERNAL_CHRIN
+                next
+                    cmp # PETSCII_RETURN
+                    bne _loop
+                end
+            else_end
+        else_end
+
+        lda  # DISK_COMMAND_FA
+        jsr KERNAL_CLOSE
+        jsr KERNAL_CLRCHN
+        sec                                                 ; FAIL
+    else_end
+
+    rts
 .endproc
 
-LOAD_PROGRAM_SAVE_X:  .byte   0
+;;; summary: Set next argv from input text `INPUT_TEXT` at position `X`.
+;;; in:
+;;;   X: Position in INPUT_TEXT
+;;; changed:
+;;;   ARGV[]
+;;;   A+ X- Y+
+.proc SET_NEXT_ARGV
+    clc
+    txa
+    adc # <INPUT_TEXT
+    sta ARGV,y
+    iny
+    lda # 0
+    adc # >INPUT_TEXT
+    sta ARGV,y
+    iny
 
-.proc PROC_A
-            clc
-            txa
-            adc     # <INPUT_TEXT
-            sta     ARGV_0,y
-            iny
-            lda     # 0
-            adc     # >INPUT_TEXT
-            sta     ARGV_0,y
-            iny
-            rts
+    rts
 .endproc
 
 ;;; summary: redirect input from file named `FILE_NAME_TEXT` extracted from `INPUT_TEXT` on work disk
+;;; in:
+;;;   INPUT_TEXT: Input text
+;;;   Y:
+;;; out:
+;;;   REDIRECT_INPUT_ACTIVE: Set to 1: redirect input active
+;;;   C: 0=OK 1=FAIL
+;;; changed: A+ X+ Y+
 .proc REDIRECT_INPUT_FROM_FILE
-            lda     # 1
-            sta     REDIRECT_INPUT_ACTIVE
-            sty     ZP_2B
-            jsr     GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-            bcc     L0F8C
-            rts
-    L0F8C:  tya
-            ldx     # <FILE_NAME_TEXT
-            ldy     # >FILE_NAME_TEXT
-            jsr     KERNAL_SETNAM
-            lda     # REDIRECT_INPUT_FA
-            ldx     WORK_DEVICE
-            ldy     # REDIRECT_INPUT_SA
-            jsr     KERNAL_SETLFS
-            jsr     KERNAL_OPEN
-            bcc     L0FA4
-            rts
-    L0FA4:  lda     WORK_DEVICE
-            jmp     PROCESS_DISK_STATUS
+    lda # 1
+    sta REDIRECT_INPUT_ACTIVE
+    sty ZP_24
+    jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
+    if_cs_then
+        rts
+    else_end
+
+    tya
+    ldx # <FILE_NAME_TEXT
+    ldy # >FILE_NAME_TEXT
+    jsr KERNAL_SETNAM
+    lda # REDIRECT_INPUT_FA
+    ldx WORK_DEVICE
+    ldy # REDIRECT_INPUT_SA
+    jsr KERNAL_SETLFS
+    jsr KERNAL_OPEN
+    if_cs_then
+        rts
+    else_end
+
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+
+    rts
 .endproc
 
 ;;; summary: Redirect output to file named `FILE_NAME_TEXT` extracted from `INPUT_TEXT` on work disk
 .proc REDIRECT_OUTPUT_TO_FILE
-            lda     # 1
-            sta     REDIRECT_OUTPUT_ACTIVE
-            sty     ZP_2B
-            jsr     GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-            bcc     L0FB7
-            rts
-    L0FB7:  dey
-            dey
-            lda     FILE_NAME_TEXT,y
-            iny
-            iny
-            cmp     # PETSCII_COMMA
-            beq     L0FCE
-            lda     # PETSCII_COMMA
-            sta     FILE_NAME_TEXT,y
-            iny
-            lda     # PETSCII_LATIN_LETTER_S
-            sta     FILE_NAME_TEXT,y
-            iny
-    L0FCE:  lda     # PETSCII_COMMA
-            sta     FILE_NAME_TEXT,y
-            iny
-            lda     # PETSCII_LATIN_LETTER_W
-            sta     FILE_NAME_TEXT,y
-            iny
-            tya
-            ldx     # <FILE_NAME_TEXT
-            ldy     # >FILE_NAME_TEXT
-            jsr     KERNAL_SETNAM
-            lda     # REDIRECT_OUTPUT_FA
-            ldx     WORK_DEVICE
-            ldy     # REDIRECT_OUTPUT_FILE_SA
-            jsr     KERNAL_SETLFS                           ; A=FA X=DA Y=SA
-            jsr     KERNAL_OPEN
-            bcc     L0FF2
-            rts                                             ; FAIL
-.endproc
+  BREAK1:
+    lda # 1
+    sta REDIRECT_OUTPUT_ACTIVE
+    sty ZP_24
+    jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
+    if_cs_then
+        ; FAIL
+        rts
+    else_end
 
-; Used
-L0FF2:
-            lda     WORK_DEVICE
+    dey
+    dey
+    lda FILE_NAME_TEXT,y
+    iny
+    iny
+    cmp # PETSCII_COMMA
+    if_ne_then
+        lda # PETSCII_COMMA
+        sta FILE_NAME_TEXT,y
+        iny
+        lda # PETSCII_LATIN_LETTER_S
+        sta FILE_NAME_TEXT,y
+        iny
+    else_end
+
+    lda # PETSCII_COMMA
+    sta FILE_NAME_TEXT,y
+    iny
+    lda # PETSCII_LATIN_LETTER_W
+    sta FILE_NAME_TEXT,y
+    iny
+    tya
+    ldx # <FILE_NAME_TEXT
+    ldy # >FILE_NAME_TEXT
+    jsr KERNAL_SETNAM                                       ; A=NAME.LENGTH X=<NAME Y=>NAME
+    lda # REDIRECT_OUTPUT_FA
+    ldx WORK_DEVICE
+    ldy # REDIRECT_OUTPUT_FILE_SA
+    jsr KERNAL_SETLFS                                       ; A=FA X=DA Y=SA
+    jsr KERNAL_OPEN
+    if_cs_then
+        ; FAIL
+        rts
+    else_end
+
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+
+    rts
+.endproc
 
 ;;; summary: Read disk status of device `A` into `DISK_STATUS_TEXT`, printing if not equal to "00"
 ;;; in:
@@ -1335,53 +853,76 @@ L0FF2:
 ;;; out:
 ;;;   DISK_STATUS_TEXT: Disk status that has been read
 ;;;   C: 0=OK 1=FAIL
-;;;   X: Is ZP_2A
-;;;   Y: Is ZP_2B
+;;;   X: = ZP_23
+;;;   Y: = ZP_24
 .proc PROCESS_DISK_STATUS
-            pha
-                lda     # 0
-                jsr     KERNAL_SETNAM                           ; No name
-            pla
-            tax                                                 ; X = A' = DA
-            lda     # DISK_COMMAND_FA                           ; A = DISK_COMMAND_FA = DISK_COMMAND_SA
-            tay                                                 ; Y = DISK_COMMAND_SA
-            jsr     KERNAL_SETLFS                               ; A=FA X=DA Y=SA
-            jsr     KERNAL_OPEN
-            ldx     # DISK_COMMAND_FA
-            jsr     KERNAL_CHKIN
-            ldy     # 0
-    L100D:  jsr     KERNAL_CHRIN
-            sta     DISK_STATUS_TEXT,y
-            iny
-            cmp     # PETSCII_RETURN
-            bne     L100D
-            jsr     KERNAL_CLRCHN
-            lda     DISK_STATUS_TEXT_CODE_0
-            cmp     # PETSCII_DIGIT_ZERO
-            bne     OUT_DISK_STATUS_TEXT
-            lda     DISK_STATUS_TEXT_CODE_1
-            cmp     # PETSCII_DIGIT_ZERO
-            bne     OUT_DISK_STATUS_TEXT
-            clc
-            ldx     ZP_2A
-            ldy     ZP_2B
-            rts
+    pha
+        lda # 0
+        jsr KERNAL_SETNAM                                   ; No name
+    pla
+    tax                                                     ; X = A' = DA
+    lda # DISK_COMMAND_FA                                   ; A = DISK_COMMAND_FA = DISK_COMMAND_SA
+    tay                                                     ; Y = DISK_COMMAND_SA
+    jsr KERNAL_SETLFS                                       ; A=FA X=DA Y=SA
+    jsr KERNAL_OPEN
+    ldx # DISK_COMMAND_FA
+    jsr KERNAL_CHKIN
+    from
+        ldy # 0
+    loop
+        jsr KERNAL_CHRIN
+        sta DISK_STATUS_TEXT,y
+        iny
+    next
+        cmp # PETSCII_RETURN
+        bne _loop
+    end
+
+    jsr KERNAL_CLRCHN
+
+    if
+        lda DISK_STATUS_TEXT_CODE_0
+        cmp # PETSCII_DIGIT_ZERO
+        bne _then
+        lda DISK_STATUS_TEXT_CODE_1
+        cmp # PETSCII_DIGIT_ZERO
+        beq _else
+    then
+        ; ! (DISK_STATUS_TEXT_CODE_0 = "0" & DISK_STATUS_TEXT_CODE_1 = "0")
+        ; Error
+        jsr OUT_DISK_STATUS_TEXT
+        sec
+        bcs _end                                            ; bra
+    else
+        ; OK
+        clc
+    end
+
+    ldx ZP_23
+    ldy ZP_24
+
+    rts
 .endproc
 
 ;;; summary: Print disk status text to output (presumably screen)
 .proc OUT_DISK_STATUS_TEXT
-            ldy     # 0
-    L1031:  lda     DISK_STATUS_TEXT,y
-            cmp     # PETSCII_RETURN
-            beq     L103E
-            jsr     KERNAL_CHROUT
-            iny
-            bne     L1031
-    L103E:  jsr     KERNAL_CHROUT
-            sec
-            ldx     ZP_2A
-            ldy     ZP_2B
-            rts
+    from
+        ldy # 0
+    loop
+        lda DISK_STATUS_TEXT,y
+        cmp # PETSCII_RETURN
+        beq _end                                            ; break
+        jsr KERNAL_CHROUT
+    next
+        iny
+        bne _loop                                           ; bra
+    L103E:
+    end
+
+    ; Print the  RETURN too    
+    jsr KERNAL_CHROUT
+
+    rts
 .endproc
 
 ;;; summary: Get (extract) file name from `INPUT_TEXT` from position `X`, prefixed with work drive and colon.
@@ -1391,223 +932,305 @@ L0FF2:
 ;;; out:
 ;;;   FILE_NAME_TEXT: Extracted file name
 ;;;   X: Last position in `INPUT_TEXT` of extracted file name
-;;;   ZP_2A: Same as `X`
+;;;   ZP_23: Same as `X`
 ;;;   C: 0=OK 1=FAIL
 ;;; notes:
 ;;;   TODO Quoted file name is not possible
 .proc GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-            clc
-            lda     WORK_DRIVE
-            adc     # PETSCII_DIGIT_ZERO
-            sta     FILE_NAME_TEXT_DRIVE
-            lda     # PETSCII_COLON
-            sta     FILE_NAME_TEXT_COLON
+    clc
+    lda WORK_DRIVE
+    adc # PETSCII_DIGIT_ZERO
+    sta FILE_NAME_TEXT_DRIVE
+    lda # PETSCII_COLON
+    sta FILE_NAME_TEXT_COLON
 
-    L1055:  inx
-            lda     INPUT_TEXT,x
-            bne     L105D
+    ; Skip any space and no break space
+    from_loop
+        inx
+        lda INPUT_TEXT,x
+        if_eq_then
             ; No file name
             sec                                             ; FAIL
             rts
-    L105D:
-            ; Skip any space and no break space
-            cmp     # PETSCII_SPACE
-            beq     L1063
-            cmp     # PETSCII_NO_BREAK_SPACE
-    L1063:  beq     L1055
-            ldy     # 2
-    L1067:  lda     INPUT_TEXT,x
-            beq     L107B
-            cmp     # PETSCII_SPACE
-            beq     L107B
-            cmp     # PETSCII_NO_BREAK_SPACE
-            beq     L107B
-            sta     FILE_NAME_TEXT,y
-            iny
-            inx
-            bne     L1067                                   ; bra
-    L107B:  dex
-            stx     ZP_2A
-            clc                                             ; OK
-            rts
+        else_end
+
+    next
+        cmp # PETSCII_SPACE
+        beq _loop                                           ; continue
+        cmp # PETSCII_NO_BREAK_SPACE
+        beq _loop
+    end
+
+    from
+        ldy # 2
+    loop
+        lda INPUT_TEXT,x
+        beq _end                                            ; break
+        cmp # PETSCII_SPACE
+        beq _end                                            ; break
+        cmp # PETSCII_NO_BREAK_SPACE
+        beq _end
+        sta FILE_NAME_TEXT,y
+    next
+        iny
+        inx
+        bne _loop                                           ; bra
+    end
+
+    dex
+    stx ZP_23
+    clc                                                     ; OK
+
+    rts
 .endproc
 
-;;; summary: Redirect output to printer
+;;; summary: Redirect output to printer (device 4)
+;;; out:
+;;;   C: 0=OK 1=FAIL
 .proc REDIRECT_OUTPUT_TO_PRINTER
-            stx     ZP_2A
-            sty     ZP_2B
-            lda     # 1
-            sta     REDIRECT_OUTPUT_ACTIVE
-            lda     # REDIRECT_OUTPUT_FA
-            ldx     # REDIRECT_OUTPUT_PRINTER_DA
-            ldy     # REDIRECT_OUTPUT_PRINTER_SA
-            jsr     KERNAL_SETLFS
-            lda     # 0                                         ; No name
-            jsr     KERNAL_SETNAM
-            jsr     KERNAL_OPEN
-            bcs     L10A1
-            ldx     # REDIRECT_OUTPUT_FA
-            jsr     KERNAL_CHKOUT
-    L10A1:  php
-                jsr     KERNAL_CLRCHN
-            plp
-            ldx     ZP_2A
-            ldy     ZP_2B
-            rts
+    stx ZP_23
+    sty ZP_24
+
+    lda # 1
+    sta REDIRECT_OUTPUT_ACTIVE
+
+    lda # REDIRECT_OUTPUT_FA
+    ldx # REDIRECT_OUTPUT_PRINTER_DA
+    ldy # REDIRECT_OUTPUT_PRINTER_SA
+    jsr KERNAL_SETLFS
+    lda # 0                                                 ; No name
+    jsr KERNAL_SETNAM
+    jsr KERNAL_OPEN
+    if_cc_then
+        ldx # REDIRECT_OUTPUT_FA
+        jsr KERNAL_CHKOUT
+    else_end
+
+    php
+        jsr KERNAL_CLRCHN
+    plp
+
+    ldx ZP_23
+    ldy ZP_24
+
+    rts
 .endproc
 
-; Used in PROC_B, PROC_C,d PROC_D
+; Used in PROC_B, PROC_C, PROC_D
 L10AB:  .byte   0
 
 .proc PROC_C
-            stx     L1313
-            ldx     L10AB
-            sta     KERNAL_TBUFFR,x
-            inc     L10AB
-            cmp     # PETSCII_RETURN
-            beq     PROC_D
-            ldx     L1313
-            rts
+    stx BINARY_TO_DECIMAL_TMP
+    ldx L10AB
+    sta KERNAL_TBUFFR,x
+    inc L10AB
+    cmp # PETSCII_RETURN
+    beq PROC_D
+    ldx BINARY_TO_DECIMAL_TMP
+    rts
 .endproc
 
 .proc PROC_D
-            lda     REDIRECT_OUTPUT_ACTIVE
-            beq     L10CD                                   ; No
-            ; Yes
-            jsr     KERNAL_CLRCHN
-            ldx     # REDIRECT_OUTPUT_FA
-            jsr     KERNAL_CHKOUT
-    L10CD:  ldx     # 0
-    L10CF:  cpx     L10AB
-            beq     L10DD
-            lda     KERNAL_TBUFFR,x
-            jsr     KERNAL_CHROUT
-            inx
-            bne     L10CF
-    L10DD:  lda     REDIRECT_OUTPUT_ACTIVE
-            beq     L10EA                                   ; No
-            ; Yes
-            jsr     KERNAL_CLRCHN
-            ldx     # FILE_FA
-            jsr     KERNAL_CHKIN
-    L10EA:  ldx     L1313
+    lda REDIRECT_OUTPUT_ACTIVE
+    if_ne_then
+        ; Redirect output active
+        jsr KERNAL_CLRCHN
+        ldx # REDIRECT_OUTPUT_FA
+        jsr KERNAL_CHKOUT
+    else_end
+
+    from
+        ldx # 0
+    loop
+        cpx L10AB
+        beq _end                                            ; break
+        lda KERNAL_TBUFFR,x
+        jsr KERNAL_CHROUT
+    next
+        inx
+        bne _loop                                           ; bra
+    end
+
+    lda REDIRECT_OUTPUT_ACTIVE
+    if_ne_then
+        ; Redirect output active
+        jsr KERNAL_CLRCHN
+        ldx # FILE_FA
+        jsr KERNAL_CHKIN
+    else_end
+
+    ldx BINARY_TO_DECIMAL_TMP
+    jsr PROC_B
+    rts
 .endproc
 
 .proc PROC_B
-            lda     # 0
-            sta     L10AB
-            rts
+    lda # 0
+    sta L10AB
+    rts
 .endproc
 
 .proc TRY_BUILT_IN_COMMAND
-            lda     # <COMMAND_NAME_TABLE
-            sta     ZP_57
-            lda     # >COMMAND_NAME_TABLE
-            sta     ZP_58
-            lda     # 0
-            sta     ZP_59
-    L10FF:  ldy     # 0
-            lda     [ZP_57],y
-            bne     L1106
+    from
+        lda # <COMMAND_NAME_TABLE
+        sta ZP_25
+        lda # >COMMAND_NAME_TABLE
+        sta ZP_26
+        lda # 0
+        sta ZP_27
+    loop
+        ldy # 0
+        lda [ZP_25],y
+        if_eq_then
             rts
-    L1106:  jsr     STRING_COMPARE_2A_57
-            beq     L111A
-            clc
-            lda     ZP_57
-            adc     # COMMAND_NAME_SIZE
-            sta     ZP_57
-            bcc     L1116
-            inc     ZP_58
-    L1116:  inc     ZP_59
-            bne     L10FF
-    L111A:  pla
-            pla
-            ldx     ZP_59
-            bne     L1132
-            ; Bye
-            jsr     RESET_FILE_IO
-            lda     SAVE_KERNAL_NMINV_LO
-            sta     KERNAL_NMINV_LO
-            lda     SAVE_KERNAL_NMINV_HI
-            sta     KERNAL_NMINV_HI
-            jmp     LFCE2
+        else_end
 
-    L1132:  dex
-            bne     L114E
-            ; Load
-            lda     ZP_29
-            cmp     # 2
-            bne     L114B
-            lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            jsr     LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-            jmp     RESET_FILE_IO
+        jsr STRING_COMPARE_23_25
+        beq _end                                            ; break
+    next
+        clc
+        lda ZP_25
+        adc # COMMAND_NAME_SIZE
+        sta ZP_25
+        if_cs_then
+            inc ZP_26
+        else_end
 
-    L114B:  jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        inc ZP_27
+        bne _loop                                           ; bra
+    end
 
-    L114E:  dex
-            bne     L115A
-            ; ls
-            ldx     SYS_DEVICE
-            ldy     SYS_DRIVE
-            jmp     CMD_DIR
-    L115A:  dex
-            bne     L1166
-            ; l
-            ldx     WORK_DEVICE
-            ldy     WORK_DRIVE
-            jmp     CMD_DIR
-    L1166:  dex
-            bne     L116C
-            ; rm
-            jmp     CMD_RM
-    L116C:  dex
-            bne     L1172
-            ; mv
-            jmp     CMD_MV
-    L1172:  dex
-            bne     L1178
-            ; pr
-            jmp     CMD_PR
-    L1178:  dex
-            bne     L117E
-            ; disk
-            jmp     CMD_DISK
-    L117E:  dex
-            bne     L1184
-            ; work
-            jmp     CMD_WORK
-    L1184:  dex
-            bne     STRING_COMPARE_2A_57
-            ; sys
-            jmp     CMD_SYS
+    ; Take out return address so we return from PROCESS_INPUT_TEXT (yuk!)
+    pla
+    pla
+
+    ldx ZP_27
+    if_eq_then
+        ; Bye
+        jsr RESET_FILE_IO
+        lda SAVE_KERNAL_NMINV_LO
+        sta KERNAL_NMINV_LO
+        lda SAVE_KERNAL_NMINV_HI
+        sta KERNAL_NMINV_HI
+        ldx SAVE_S
+        txs
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; Load
+        lda ARGC_LO
+        cmp # 2
+        if_ne_then
+            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            rts
+        else_end
+
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+        jsr RESET_FILE_IO
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; ls
+        ldx SYS_DEVICE
+        ldy SYS_DRIVE
+        jsr CMD_DIR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; l
+        ldx WORK_DEVICE
+        ldy WORK_DRIVE
+        jsr CMD_DIR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; rm
+        jsr CMD_RM
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; mv
+        jsr CMD_MV
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; pr
+        jsr CMD_PR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; disk
+        jsr CMD_DISK
+        rts
+    else_end
+    
+    dex
+    if_eq_then
+        ; work
+        jsr CMD_WORK
+        rts
+    else_end
+    
+    dex
+    if_eq_then
+        ; sys
+        jsr CMD_SYS
+        rts
+    else_end
+
+    jsr STRING_COMPARE_23_25                                ; Why?
+
+    rts
+    
 .endproc
 
-;;; summary: Compare nul-terminated strings `ZP_2A` and `ZP_57`
+;;; summary: Compare non-empty (!) nul-terminated strings `ZP_23` and `ZP_25`
 ;;; in:
-;;;   ZP_2A: Left string
-;;;   ZP_57: Right string
+;;;   ZP_23: Left string
+;;;   ZP_25: Right string
 ;;; out:
 ;;;   Z: Is equal? 0 = no 1=yes
-.proc STRING_COMPARE_2A_57
-            ldy     # 0
-    L118C:  lda     [ZP_2A],y
-            cmp     [ZP_57],y
-            beq     L1193
+.proc STRING_COMPARE_23_25
+    from
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        cmp [ZP_25],y
+        if_ne_then
             rts
-    L1193:  iny
-            cmp     # PETSCII_NUL
-            bne     L118C
-            rts
+        else_end
+    next
+        iny
+        cmp # PETSCII_NUL
+        bne _loop
+    end
+
+    rts
 .endproc
 
 ; Command name table
 
 COMMAND_NAME_TABLE:
-    ; bye 0 0
-    .byte   "bye" , PETSCII_NUL , PETSCII_NUL
+    ; exit  0 (was bye)
+    .byte   "exit" , PETSCII_NUL
     ; load 0
     .byte   "load" , PETSCII_NUL
     ; ls 0 0 0
@@ -1629,114 +1252,147 @@ COMMAND_NAME_TABLE:
 
 ;;; summary: Command: directory listing of work or system disk
 ;;; in:
+;;;   X: Device address (8-31) DA
+;;;   Y: Drive number (0-1) DN
 .proc CMD_DIR
-            txa
-            pha
-            tya
-            clc
-            adc     # PETSCII_DIGIT_ZERO
-            sta     DIR_NAME_DRIVE
-            ldx     # 3
-            lda     ZP_29
-            cmp     # 2
-            bne     L11F6
-            lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            ldy     # 0
-    L11E8:  lda     [ZP_2A],y
-            beq     L11F3
-            sta     DIR_NAME_DOLLAR,x
-            iny
+    txa                                                     ; A = DA
+    pha                                                     ; STACK = [DA]...
+        tya
+        clc
+        adc # PETSCII_DIGIT_ZERO
+        sta DIR_NAME_DRIVE
+        ldx # 3
+        lda ARGC_LO
+        cmp # 2
+        if_eq_then
+            from
+                lda ARGV_1_LO
+                sta ZP_23
+                lda ARGV_1_HI
+                sta ZP_24
+                ldy # 0
+            loop
+                lda [ZP_23],y
+                beq _end                                    ; break
+                sta DIR_NAME_DOLLAR,x
+            next
+                iny
+                inx
+                bne _loop                                   ; bra
+            end
+
+            jmp _end
+        else
+            cmp # 1
+            if_ne_then
+                pla
+                jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+                rts
+            else_end
+
+            lda # PETSCII_ASTERISK
+            sta DIR_NAME_DOLLAR,x
             inx
-            bne     L11E8
-    L11F3:  jmp     L1204
+        end
 
-    L11F6:  cmp     # 1
-            beq     L11FE
+        txa                                                 ; A = DIR_NAME_DOLLAR.LENGTH
+        ldx # <DIR_NAME_DOLLAR
+        ldy # >DIR_NAME_DOLLAR
+        jsr KERNAL_SETNAM
+    pla                                                     ; A = DA , STACK = ...
+    pha                                                     ; A = DA , STACK = [DA]...
+        tax
+        lda # FILE_FA
+        ldy # 0
+        jsr KERNAL_SETLFS
+        jsr KERNAL_OPEN
+        if_cs_then
             pla
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            jsr ERROR_DEVICE_NOT_PRESENT
+            rts
+        else_end
+    pla                                                     ; A = DA , STACK = ...
+    jsr PROCESS_DISK_STATUS
+    if_cs_then
+        lda # FILE_FA
+        jsr KERNAL_CLOSE
+        jsr RESET_FILE_IO
+        rts
+    else_end
 
-    L11FE:  lda     # PETSCII_ASTERISK
-            sta     DIR_NAME_DOLLAR,x
-            inx
-    L1204:  txa
-            ldx     # <DIR_NAME_DOLLAR
-            ldy     # >DIR_NAME_DOLLAR
-            jsr     KERNAL_SETNAM
-            pla
-            pha
-            tax
-            lda     # FILE_FA
-            ldy     # 0
-            jsr     KERNAL_SETLFS
-            jsr     KERNAL_OPEN
-            bcc     L121F
-            pla
-            jmp     ERROR_DEVICE_NOT_PRESENT
+    jsr PROC_B
+    ldx # FILE_FA
+    jsr KERNAL_CHKIN
+    jsr KERNAL_CHRIN
+    jsr KERNAL_CHRIN
+    lda # PETSCII_RETURN
+    jsr PROC_C
+    ; Clear serial status
+    lda # KERNAL_OK                                     ; 0
+    sta SAVE_KERNAL_READST
 
-    L121F:  pla
-            jsr     PROCESS_DISK_STATUS
-            bcc     L122D
-            lda     # FILE_FA
-            jsr     KERNAL_CLOSE
-            jmp     RESET_FILE_IO
-
-    L122D:  jsr     PROC_B
-            ldx     # FILE_FA
-            jsr     KERNAL_CHKIN
-            jsr     KERNAL_CHRIN
-            jsr     KERNAL_CHRIN
-            lda     # PETSCII_RETURN
-            jsr     PROC_C
-            ; Clear serial status
-            lda     # KERNAL_OK                                 ; 0
-            sta     SAVE_KERNAL_READST
-    L1245:  jsr     IN_BYTE
-            bcs     L1294
-            jsr     IN_BYTE
-            bcs     L1294
-            jsr     IN_BYTE
-            bcs     L1294
-            pha
-            jsr     IN_BYTE
+    from_loop OUTER
+        jsr IN_BYTE
+        bcs _end                                        ; break
+        jsr IN_BYTE
+        bcs _end                                        ; break
+        jsr IN_BYTE
+        bcs _end                                        ; break
+        pha
+            jsr IN_BYTE
             tay
-            pla
-            tax
-            jsr     PROC_E
-            ldx     # 0
-    L1260:  lda     L1315,x
-            cmp     # PETSCII_SPACE
-            beq     L126F
-            jsr     PROC_C
+        pla
+        tax
+        jsr BINARY_TO_DECIMAL
+
+        from
+            ldx # 0
+        loop
+            lda BINARY_TO_DECIMAL_DECIMAL,x
+            cmp # PETSCII_SPACE
+            beq _end                                        ; break
+            jsr PROC_C
+        next
             inx
-            cpx     # 3
-            bne     L1260
-    L126F:  lda     # PETSCII_SPACE
-            jsr     PROC_C
-    L1274:  jsr     IN_BYTE
-            bcs     L1294
-            cmp     # PETSCII_NUL
-            beq     L1283
-            jsr     PROC_C
-            jmp     L1274
+            cpx # 3
+            bne _loop
+        end
 
-    L1283:  lda     # PETSCII_RETURN
-            jsr     PROC_C
+        lda # PETSCII_SPACE
+        jsr PROC_C
 
-            ; Pause on SHIFT
-    L1288:  lda     ZP_CB
-            eor     # $40
-            ora     KVAR_SHFLAG
-            bne     L1288
-            jmp     L1245
+        from_loop
+            jsr IN_BYTE
+            bcs OUTER::_end                                 ; break OUTER
+            cmp # PETSCII_NUL
+            beq _end                                        ; break
+            jsr PROC_C
+        next
+            jmp _loop
+        end
 
-    L1294:  lda     # PETSCII_RETURN
-            jsr     PROC_C
-            lda     # FILE_FA
-            jsr     KERNAL_CLOSE
-            jmp     RESET_FILE_IO
+        lda # PETSCII_RETURN
+        jsr PROC_C
+
+        ; Pause on SHIFT
+        from_loop
+            lda ZPKERNAL_SFDX                               ; $CB Matrix code of key currently being pressed. Values: $00-$3F: Keyboard matrix code. $40: No key is currently pressed. 
+            eor # $40
+            ora KVAR_SHFLAG                                 ; $028D Shift key indicator. Bits: Bit #0: 1 = One or more of left Shift, right Shift or Shift Lock is currently being pressed or locked. Bit #1: 1 = Commodore is currently being pressed. Bit #2: 1 = Control is currently being pressed.
+        next
+            bne _loop
+        end
+
+    next
+        jmp _loop
+    end
+
+    lda # PETSCII_RETURN
+    jsr PROC_C
+    lda # FILE_FA
+    jsr KERNAL_CLOSE
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 DIR_TEXT: 
@@ -1746,66 +1402,93 @@ DIR_NAME_DRIVE:
 L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
         .res    16, PETSCII_NUL
 
-.proc PROC_E
-            stx     L1311
-            sty     L1312
-            ldx     # 3
-            lda     # PETSCII_SPACE
-    L12BE:  sta     L1315,x
-            dex
-            bpl     L12BE
-            ldx     # 0
-            ldy     # 3
-    L12C8:  lda     # 0
-            sta     L1314
-    L12CD:  sec
-            lda     L1311
-            sbc     TABLE_BINARY_TO_DECIMAL,y
-            sta     L1313
-            lda     L1312
-            sbc     L130D,y
-            bcc     L1
-            sta     L1312
-            lda     L1313
-            sta     L1311
-            inc     L1314
-            bne     L12CD
+;;; summary: Unsigned binary X#Y to decimal (max 9999)
+.proc BINARY_TO_DECIMAL
+    stx BINARY_TO_DECIMAL_BINARY_LO
+    sty BINARY_TO_DECIMAL_BINARY_HI
 
-    L1:     lda     L1314
-            bne     L12F6
-            cpx     # 0
-            beq     L12FD
-    L12F6:  clc
-            adc     # PETSCII_DIGIT_ZERO
-            sta     L1315,x
+    from
+        ldx # 3
+        lda # PETSCII_SPACE
+    loop
+        sta BINARY_TO_DECIMAL_DECIMAL,x
+    next
+        dex
+        bpl _loop
+    end
+
+    from OUTER
+        ldx # 0
+        ldy # 3
+    loop                                                    ; L12C8:
+
+        from INNER
+            lda # 0
+            sta BINARY_TO_DECIMAL_DECIMAL_DIGIT
+        loop
+            sec
+            lda BINARY_TO_DECIMAL_BINARY_LO
+            sbc TABLE_BINARY_TO_DECIMAL_LO,y
+            sta BINARY_TO_DECIMAL_TMP
+            lda BINARY_TO_DECIMAL_BINARY_HI
+            sbc TABLE_BINARY_TO_DECIMAL_HI,y
+            bcc _end                                        ; break
+            sta BINARY_TO_DECIMAL_BINARY_HI
+            lda BINARY_TO_DECIMAL_TMP
+            sta BINARY_TO_DECIMAL_BINARY_LO
+        next
+            inc BINARY_TO_DECIMAL_DECIMAL_DIGIT
+            bne _loop                                       ; bra
+        end
+
+        if
+            lda BINARY_TO_DECIMAL_DECIMAL_DIGIT
+            bne _then
+            cpx # 0
+            beq _end
+        then
+            clc
+            adc # PETSCII_DIGIT_ZERO
+            sta BINARY_TO_DECIMAL_DECIMAL,x
             inx
-    L12FD:  dey
-            bpl     L12C8
-            txa
-            bne     L1308
-            lda     # PETSCII_DIGIT_ZERO
-            sta     L1315
-    L1308:  rts
+        end
+
+    next
+        dey
+        bpl _loop                                           ; L12C8
+    end
+
+    txa
+    if_eq_then
+        lda # PETSCII_DIGIT_ZERO
+        sta BINARY_TO_DECIMAL_DECIMAL
+    else_end
+
+    rts
 .endproc
 
 ;;; summary: Byte binary to decimal conversion table
-TABLE_BINARY_TO_DECIMAL:
-        .byte   1                                           ; 1
-        .byte   10                                          ; 10
-        .byte   100                                         ; 100
-        .byte   $E8                                         ; 232 meaning?
-L130D:  .byte   0
-        .byte   0
-        .byte   0
-        .byte   3                                           ; 3 meaning?
-L1311:  .byte   0
-L1312:  .byte   0
-L1313:  .byte   0
-L1314:  .byte   0
-L1315:  .byte   0
-        .byte   0
-        .byte   0
-        .byte   0
+TABLE_BINARY_TO_DECIMAL_LO:
+        .byte   1       ; [0]
+        .byte   10      ; [1]
+        .byte   100     ; [2]
+        .byte   232     ; [3]
+
+TABLE_BINARY_TO_DECIMAL_HI:
+        .byte   0       ; [0]
+        .byte   0       ; [1]
+        .byte   0       ; [2]
+        .byte   3       ; [3]
+
+BINARY_TO_DECIMAL_BINARY_LO:        .byte   0               ; L1311
+BINARY_TO_DECIMAL_BINARY_HI:        .byte   0               ; L1312
+BINARY_TO_DECIMAL_TMP:              .byte   0               ; L1313
+BINARY_TO_DECIMAL_DECIMAL_DIGIT:    .byte   0               ; L1314
+BINARY_TO_DECIMAL_DECIMAL:                                  ; L1315
+        .byte   0       ; [0]
+        .byte   0       ; [1]
+        .byte   0       ; [2]
+        .byte   0       ; [3]
 
 ;;; summary: Read byte, checking status
 ;;; out:
@@ -1813,91 +1496,119 @@ L1315:  .byte   0
 ;;;   C: 0=OK 1=FAIL
 ;;;   SAVE_KERNAL_READST: Last status
 .proc IN_BYTE
-            lda     SAVE_KERNAL_READST
-            cmp     # KERNAL_OK                             ; 0
-            beq     L1322
-            sec                                             ; FAIL
-            rts
-    L1322:  jsr     KERNAL_CHRIN
-            pha
-                jsr     KERNAL_READST
-                sta     SAVE_KERNAL_READST
-            pla
-            clc                                             ; OK
-            rts
+    lda SAVE_KERNAL_READST
+    cmp # KERNAL_OK
+    if_ne_then
+        sec                                                 ; FAIL
+        rts
+    else_end
+
+    jsr KERNAL_CHRIN
+    pha
+        jsr KERNAL_READST
+        sta SAVE_KERNAL_READST
+    pla
+    clc                                                     ; OK
+    rts
 .endproc
 
 SAVE_KERNAL_READST:     .byte   0
 
+;;; summary: Send command to work disk
+;;; changed: ZP_23#ZP_24
 .proc CMD_DISK
-            lda     ZP_29
-            cmp     # 2
-            beq     L1339
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L1339:  lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            lda     # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            ldx     WORK_DEVICE
-            tay
-            jsr     KERNAL_SETLFS
-            lda     # 0
-            jsr     KERNAL_SETNAM
-            jsr     KERNAL_OPEN
-            ldx     # DISK_COMMAND_FA
-            jsr     KERNAL_CHKOUT
-            ldy     # 0
-    L135B:  lda     [ZP_2A],y
-            beq     L1365
-            jsr     KERNAL_CHROUT
-            iny
-            bne     L135B
-    L1365:  lda     # PETSCII_RETURN
-            jsr     KERNAL_CHROUT
-            lda     WORK_DEVICE
-            jsr     PROCESS_DISK_STATUS
-            jmp     RESET_FILE_IO
+    lda ARGC_LO
+    cmp # 2
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+
+    lda ARGV_1_LO
+    sta ZP_23
+    lda ARGV_1_HI
+    sta ZP_24
+    lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
+    ldx WORK_DEVICE
+    tay
+    jsr KERNAL_SETLFS
+    lda # 0                                                 ; No name
+    jsr KERNAL_SETNAM
+    jsr KERNAL_OPEN
+    ldx # DISK_COMMAND_FA
+    jsr KERNAL_CHKOUT
+
+    from
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        beq _end
+        jsr KERNAL_CHROUT
+    next
+        iny
+        bne _loop
+    end
+
+    lda # PETSCII_RETURN
+    jsr KERNAL_CHROUT
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
+;;; summary: Delete file
 .proc CMD_RM
-            lda     ZP_29
-            cmp     # 2
-            beq     L137C
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L137C:  clc
-            lda     WORK_DRIVE
-            adc     # PETSCII_DIGIT_ZERO
-            sta     RM_TEXT_DRIVE
-            lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            ldx     # RM_TEXT_OFFSET_NAME
-            ldy     # 0
-    L1393:  lda     [ZP_2A],y
-            beq     L139E
-            sta     RM_TEXT,x
-            iny
-            inx
-            bne     L1393
-    L139E:  lda     # PETSCII_RETURN
-            sta     RM_TEXT,x
-            inx
-            txa
-            ldx     # <RM_TEXT
-            ldy     # >RM_TEXT
-            jsr     KERNAL_SETNAM
-            lda     # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            tay
-            ldx     WORK_DEVICE
-            jsr     KERNAL_SETLFS
-            jsr     KERNAL_OPEN
-            bcc     L13BD
-            jmp     ERROR_DEVICE_NOT_PRESENT
-    L13BD:  lda     WORK_DEVICE
-            jsr     PROCESS_DISK_STATUS
-            jmp     RESET_FILE_IO
+    lda ARGC_LO
+    cmp # 2
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+    
+    clc
+    lda WORK_DRIVE
+    adc # PETSCII_DIGIT_ZERO
+    sta RM_TEXT_DRIVE
+
+    from
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        ldx # RM_TEXT_OFFSET_NAME
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        beq _end                                            ; break
+        sta RM_TEXT,x
+    next
+        iny
+        inx
+        bne _loop                                           ; bra
+    end
+
+    lda # PETSCII_RETURN
+    sta RM_TEXT,x
+    inx
+    txa
+    ldx # <RM_TEXT
+    ldy # >RM_TEXT
+    jsr KERNAL_SETNAM
+    lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
+    tay
+    ldx WORK_DEVICE
+    jsr KERNAL_SETLFS
+    jsr KERNAL_OPEN
+    if_cs_then
+        jsr ERROR_DEVICE_NOT_PRESENT
+        rts
+    else_end
+
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 ; `rm` disk command text buffer ('s' = scratch, drive '0')
@@ -1907,64 +1618,81 @@ RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
                 .res    20, PETSCII_NUL
 
 .proc CMD_MV
-            lda     ZP_29
-            cmp     # 3
-            beq     L13E6
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L13E6:  clc
-            lda     WORK_DRIVE
-            adc     # PETSCII_DIGIT_ZERO
-            sta     MV_TEXT_DRIVE
-            pha
-            lda     ARGV_2_LO
-            sta     ZP_2A
-            lda     ARGV_2_HI
-            sta     ZP_2B
-            ldx     # 3
-            ldy     # 0
-    L13FE:  lda     [ZP_2A],y
-            beq     L1409
-            sta     MV_TEXT,x
+    lda ARGC_LO
+    cmp # 3
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+
+    clc
+    lda WORK_DRIVE
+    adc # PETSCII_DIGIT_ZERO
+    sta MV_TEXT_DRIVE
+
+    pha
+        from
+            lda ARGV_2_LO
+            sta ZP_23
+            lda ARGV_2_HI
+            sta ZP_24
+            ldx # 3
+            ldy # 0
+        loop
+            lda [ZP_23],y
+            beq _end                                        ; break
+            sta MV_TEXT,x
             iny
             inx
-            bne     L13FE
-    L1409:  lda     # PETSCII_EQUALS_SIGN
-            sta     MV_TEXT,x
-            inx
-            pla
-            sta     MV_TEXT,x
-            inx
-            lda     # PETSCII_COLON
-            sta     MV_TEXT,x
-            inx
-            lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            ldy     # 0
-    L1426:  lda     [ZP_2A],y
-            beq     L1431
-            sta     MV_TEXT,x
-            iny
-            inx
-            bne     L1426
-    L1431:  lda     # PETSCII_RETURN
-            sta     MV_TEXT,x
-            inx
-            txa
-            ldx     # <MV_TEXT
-            ldy     # >MV_TEXT
-            jsr     KERNAL_SETNAM
-            lda     # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            tay
-            ldx     WORK_DEVICE
-            jsr     KERNAL_SETLFS
-            jsr     KERNAL_OPEN
-            bcc     L1450
-            jmp     ERROR_DEVICE_NOT_PRESENT
-    L1450:  lda     WORK_DEVICE
-            jsr     PROCESS_DISK_STATUS
-            jmp     RESET_FILE_IO
+            bne _loop                                       ; bra
+        end
+
+        lda # PETSCII_EQUALS_SIGN
+        sta MV_TEXT,x
+        inx
+    pla
+    sta MV_TEXT,x
+    inx
+    lda # PETSCII_COLON
+    sta MV_TEXT,x
+    inx
+    from
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        beq _end                                            ; break
+        sta MV_TEXT,x
+    next
+        iny
+        inx
+        bne _loop
+    end
+
+    lda # PETSCII_RETURN
+    sta MV_TEXT,x
+    inx
+    txa
+    ldx # <MV_TEXT
+    ldy # >MV_TEXT
+    jsr KERNAL_SETNAM
+    lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
+    tay
+    ldx WORK_DEVICE
+    jsr KERNAL_SETLFS
+    jsr KERNAL_OPEN
+    if_cs_then
+        jsr ERROR_DEVICE_NOT_PRESENT
+        rts
+    else_end
+
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 ; `mv` disk command text buffer ('r' = rename, drive '0')
@@ -1974,111 +1702,156 @@ MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
                 .res    40, PETSCII_NUL
 
 .proc CMD_PR
-            lda     ZP_29
-            cmp     # 2
-            beq     L148D
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L148D:  lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            ldy     # 0
-    L1499:  lda     [ZP_2A],y
-            beq     L14A0
-            iny
-            bne     L1499
-    L14A0:  tya
-            ldx     ZP_2A
-            ldy     ZP_2B
-            jsr     KERNAL_SETNAM
-            lda     # FILE_FA
-            ldx     WORK_DEVICE
-            tay
-            jsr     KERNAL_SETLFS
-            jsr     KERNAL_OPEN
-            bcc     L14B9
-            jmp     ERROR_DEVICE_NOT_PRESENT
-    L14B9:  lda     WORK_DEVICE
-            jsr     PROCESS_DISK_STATUS
-            bcc     L14C9
-            lda     # FILE_FA
-            jsr     KERNAL_CLOSE
-            jmp     RESET_FILE_IO
-    L14C9:  jsr     PROC_B
-            ldx     # FILE_FA
-            jsr     KERNAL_CHKIN
-    L14D1:  jsr     KERNAL_CHRIN
-            tax
-            jsr     KERNAL_READST
-            pha
+    lda ARGC_LO
+    cmp # 2
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+
+    from
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        beq _end                                            ; break
+    next
+        iny
+        bne _loop                                           ; bra
+    end
+
+    tya
+    ldx ZP_23
+    ldy ZP_24
+    jsr KERNAL_SETNAM
+    lda # FILE_FA
+    ldx WORK_DEVICE
+    tay
+    jsr KERNAL_SETLFS
+    jsr KERNAL_OPEN
+    if_cs_then
+        jsr ERROR_DEVICE_NOT_PRESENT
+        rts
+    else_end
+
+    lda WORK_DEVICE
+    jsr PROCESS_DISK_STATUS
+    if_cs_then
+        lda # FILE_FA
+        jsr KERNAL_CLOSE
+        jsr RESET_FILE_IO
+        rts
+    else_end
+
+    jsr PROC_B
+    ldx # FILE_FA
+    jsr KERNAL_CHKIN
+
+    from_loop
+        jsr KERNAL_CHRIN
+        tax
+        jsr KERNAL_READST
+        pha
             txa
-            jsr     PROC_C
-            pla
-            beq     L14D1
-            jsr     PROC_D
-            lda     # FILE_FA
-            jsr     KERNAL_CLOSE
-            jmp     RESET_FILE_IO
-            ldx     # <RESOURCE_STRING_CANT_OPEN_FILE
-            ldy     # >RESOURCE_STRING_CANT_OPEN_FILE
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+            jsr PROC_C
+        pla
+    next
+        beq _loop
+    end
+
+    jsr PROC_D
+    lda # FILE_FA
+    jsr KERNAL_CLOSE
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
-RESOURCE_STRING_CANT_OPEN_FILE:
-    .byte "can't open file" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
-
+;;; summary: Error device not present
 .proc ERROR_DEVICE_NOT_PRESENT
-            lda     # FILE_FA
-            jsr     KERNAL_CLOSE
-            ldx     # <RESOURCE_STRING_DEVICE_NOT_PRESENT
-            ldy     # >RESOURCE_STRING_DEVICE_NOT_PRESENT
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+    lda # FILE_FA
+    jsr KERNAL_CLOSE
+    ldx # <RESOURCE_STRING_DEVICE_NOT_PRESENT
+    ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 RESOURCE_STRING_DEVICE_NOT_PRESENT:
     .byte "device not present" , PETSCII_RETURN , PETSCII_NUL
 
+;;;summary: Show or change work disk
 .proc CMD_WORK
-            lda     ZP_29
-            cmp     # 1
-            bne     L1539
-            ldx     WORK_DEVICE
-            ldy     WORK_DRIVE
-            jmp     OUT_DEVICE_DRIVE
-    L1539:  cmp     # 3
-            beq     L1540
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L1540:  jsr     CHANGE_DEVICE_DRIVE
-            bcs     L154B
-            stx     WORK_DEVICE
-            sty     WORK_DRIVE
-    L154B:  jmp     RESET_FILE_IO
+    lda ARGC_LO
+    cmp # 1
+    if_eq_then
+        ; Show
+        ldx WORK_DEVICE
+        ldy WORK_DRIVE
+        jsr OUT_DEVICE_DRIVE
+        rts
+    else_end
+
+    cmp # 3
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+
+    ; Change
+    jsr CHANGE_DEVICE_DRIVE
+    if_cc_then
+        ; Change went OK
+        stx WORK_DEVICE
+        sty WORK_DRIVE
+    else_end
+
+    jsr RESET_FILE_IO
+
+    rts
 .endproc
 
+;;;summary: Show or change system disk
 .proc CMD_SYS
-            lda     ZP_29
-            cmp     # 1
-            bne     L155D
-            ldx     SYS_DEVICE
-            ldy     SYS_DRIVE
-            jmp     OUT_DEVICE_DRIVE
-    L155D:  cmp     # 3
-            beq     L1564
-            jmp     ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    L1564:  jsr     CHANGE_DEVICE_DRIVE
-            bcs     L156F
-            stx     SYS_DEVICE
-            sty     SYS_DRIVE
-    L156F:  jmp     RESET_FILE_IO
+    lda ARGC_LO
+    cmp # 1
+    if_eq_then
+        ; Show
+        ldx SYS_DEVICE
+        ldy SYS_DRIVE
+        jsr OUT_DEVICE_DRIVE
+        rts
+    else_end
+
+    cmp # 3
+    if_ne_then
+        jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        rts
+    else_end
+
+    ; Change
+    jsr CHANGE_DEVICE_DRIVE
+    if_cc_then
+        ; Change went OK
+        stx SYS_DEVICE
+        sty SYS_DRIVE
+    else_end
+
+    jsr RESET_FILE_IO
+
+    rts
 .endproc
 
+;;; summary: Error wrong number of arguments
 .proc ERROR_WRONG_NUMBER_OF_ARGUMENTS
-            ldx     # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-            ldy     # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+    ldx # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+    ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
@@ -2089,30 +1862,33 @@ RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
 ;;;   X: Device
 ;;;   Y: Drive
 .proc OUT_DEVICE_DRIVE
-            lda     # PETSCII_SPACE
-            sta     STRING_DEVICE_NUMBER_1
-            txa
-            ldx     # 0
-            cmp     # 10
-            bcc     L15AF
-            pha
-            lda     # PETSCII_DIGIT_ONE
-            sta     STRING_DEVICE_NUMBER_0
-            pla
-            sec
-            sbc     # 10
-            inx
-    L15AF:  clc
-            adc     # PETSCII_DIGIT_ZERO
-            sta     STRING_DEVICE_NUMBER_0,x
-            clc
-            tya
-            adc     # PETSCII_DIGIT_ZERO
-            sta     STRING_DRIVE_NUMBER_0
-            ldx     # <STRING_DEVICE
-            ldy     # >STRING_DEVICE
-            jsr     OUT_STRING
-            jmp     RESET_FILE_IO
+    lda # PETSCII_SPACE
+    sta STRING_DEVICE_NUMBER_1
+    txa
+    ldx # 0
+    cmp # 10
+    if_ge_then
+        pha
+            lda # PETSCII_DIGIT_ONE
+            sta STRING_DEVICE_NUMBER_0
+        pla
+        sec
+        sbc # 10
+        inx
+    else_end
+
+    clc
+    adc # PETSCII_DIGIT_ZERO
+    sta STRING_DEVICE_NUMBER_0,x
+    clc
+    tya
+    adc # PETSCII_DIGIT_ZERO
+    sta STRING_DRIVE_NUMBER_0
+    ldx # <STRING_DEVICE
+    ldy # >STRING_DEVICE
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
+    rts
 .endproc
 
 STRING_DEVICE_DRIVE:
@@ -2139,188 +1915,120 @@ STRING_DRIVE_NUMBER_0:
 ;;;   Y:  Drive number: 0 or 1
 ;;;   C: 0=OK 1=FAIL
 ;;; changed:
-;;;   A+ X+ Y+ ZP_2A#ZP_2B STRING_DEVICE_NUMBER_0 STRING_DRIVE_NUMBER_0
+;;;   A+ X+ Y+ ZP_23#ZP_24 STRING_DEVICE_NUMBER_0 STRING_DRIVE_NUMBER_0
 ;;; notes:
 ;;;   We test only if the device is present, not the drive.
 ;;;   This is because it is not possible to test if a drive is present (without a readable disk being present).
 .proc CHANGE_DEVICE_DRIVE
-            ; Get device number from ARGV[1] into STRING_DEVICE_NUMBER_0
-            lda     ARGV_1_LO
-            sta     ZP_2A
-            lda     ARGV_1_HI
-            sta     ZP_2B
-            ldx     # 0
-            ldy     # 0
-            lda     [ZP_2A],y
-            cmp     # PETSCII_DIGIT_ONE
-            bne     L15FB
+    try
+        ; Get device number from ARGV[1] into STRING_DEVICE_NUMBER_0
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        ldx # 0
+        ldy # 0
+        lda [ZP_23],y
+        cmp # PETSCII_DIGIT_ONE
+        if_eq_then
             ; A = "1"
-            ldx     # 10
+            ldx # 10
             iny
-            lda     [ZP_2A],y
-            bne     L15FB
-            ; PETSCII_NUL: device "1" is not possible -> error
-            jmp     L1658
+            lda [ZP_23],y
+            if_eq_then
+                ; Device "1" is not possible -> error
+                jmp _catch                                  ; throw
+            else_end
+        else_end
 
-    L15FB:
-            ; A != "1"
-            txa
-            clc
-            adc     [ZP_2A],y
-            sec
-            sbc     # PETSCII_DIGIT_ZERO
-            ; A: Device number (8,9,10,...,19)
-            sta     STRING_DEVICE_NUMBER_0                  ; Weird
-            iny
-            lda     [ZP_2A],y
-            beq     L160D                                   ; PETSCII_NUL -> proceed
+        ; A != "1"
+        txa
+        clc
+        adc [ZP_23],y
+        sec
+        sbc # PETSCII_DIGIT_ZERO
+        ; A: Device number (8,9,10,...,19)
+        sta STRING_DEVICE_NUMBER_0                  ; Weird
+
+        iny
+        lda [ZP_23],y
+        if_ne_then
             ; Another character -> error
-            jmp     L1658
+            jmp _catch                                  ; throw
+        else_end
 
-    L160D:
-            ; Get drive number from ARGV[1] into STRING_DRIVE_NUMBER_0
-            lda     ARGV_2_LO
-            sta     ZP_2A
-            lda     ARGV_2_HI
-            sta     ZP_2B
-            ldy     # 0
-            lda     [ZP_2A],y
-            cmp     # PETSCII_DIGIT_ZERO
-            bcc     L1629                                   ; A < "0" -> error
-            cmp     # PETSCII_DIGIT_TWO
-            bcs     L1629                                   ; A >= "2" -> error
-            ; "0" <= A <= "1"
-            tax
-            iny
-            lda     [ZP_2A],y
-            beq     L162C                                   ; PETSCII_NUL -> proceed
-    L1629:
+        ; Get drive number from ARGV[1] into STRING_DRIVE_NUMBER_0
+        lda ARGV_2_LO
+        sta ZP_23
+        lda ARGV_2_HI
+        sta ZP_24
+
+        ldy # 0
+        lda [ZP_23],y
+        cmp # PETSCII_DIGIT_ZERO
+        if
+            bcc _then                                       ; A < "0" -> error
+            cmp # PETSCII_DIGIT_TWO
+            bcc _end                                       ; A < "2" -> ok
+        then
+            ; A < "0" || A >= "2"
+        else
+            jmp _catch
+        end
+
+        tax
+        iny
+        lda [ZP_23],y
+        if_ne_then
             ; Another character -> error
-            jmp     L1658
+            jmp _catch
+        else_end
 
-    L162C:
-            ; X: drive number as character
-            txa
-            sec
-            sbc     # PETSCII_DIGIT_ZERO
-            ; A: drive number
-            sta     STRING_DRIVE_NUMBER_0                       ; Weird
+        ; X: drive number as character "0" or "1"
+        txa
+        sec
+        sbc # PETSCII_DIGIT_ZERO
+        ; A: drive number
+        sta STRING_DRIVE_NUMBER_0                           ; Weird
 
-            ; STRING_DEVICE_NUMBER_0: Device number
-            ; STRING_DRIVE_NUMBER_0: Drive number
-            ; Test if device present by sending Memory Read command
-            lda     # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            ldx     STRING_DEVICE_NUMBER_0
-            tay
-            jsr     KERNAL_SETLFS
-            ldx     # <MR_TEXT
-            ldy     # >MR_TEXT
-            lda     # 3                                         ; MR_TEXT_LENGTH
-            jsr     KERNAL_SETNAM
-            jsr     KERNAL_OPEN
-            php
-                lda     # DISK_COMMAND_FA
-                jsr     KERNAL_CLOSE
-            plp
-            bcs     L1658                                   ; error
-            ; Device is present
-            ldx     STRING_DEVICE_NUMBER_0
-            ldy     STRING_DRIVE_NUMBER_0
-            ; C=0 OK
-            rts
+        ; STRING_DEVICE_NUMBER_0: Device number
+        ; STRING_DRIVE_NUMBER_0: Drive number
+        ; Test if device present by sending Memory Read command
+        lda # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
+        ldx STRING_DEVICE_NUMBER_0
+        tay
+        jsr KERNAL_SETLFS
+        ldx # <MR_TEXT
+        ldy # >MR_TEXT
+        lda # MR_TEXT_LENGTH
+        jsr KERNAL_SETNAM
+        jsr KERNAL_OPEN
+        php
+            lda # DISK_COMMAND_FA
+            jsr KERNAL_CLOSE
+        plp
+        bcs _catch                                          ; Device not present -> rethrow
 
-    L1658:  ldx     # <RESOURCE_STRING_DRIVE_NOT_PRESENT
-            ldy     # >RESOURCE_STRING_DRIVE_NOT_PRESENT
-            jsr     OUT_STRING
-            sec                                             ; FAIL
-            rts
+        ; C=0 -> Device is present
+        ldx STRING_DEVICE_NUMBER_0
+        ldy STRING_DRIVE_NUMBER_0
+        ; C=0 OK
+        rts
+    catch
+        ldx # <RESOURCE_STRING_DRIVE_NOT_PRESENT
+        ldy # >RESOURCE_STRING_DRIVE_NOT_PRESENT
+        jsr OUT_STRING
+        sec                                                 ; FAIL
+    finally_end
+
+    rts
 .endproc
 
 RESOURCE_STRING_DRIVE_NOT_PRESENT:
     .byte   "drive not present" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
-; Disk command Memory-Read. Used for what?
+; Disk command Memory-Read.
 MR_TEXT:
     .byte   "m-r"
 MR_TEXT_AFTER:
 MR_TEXT_LENGTH = MR_TEXT_AFTER - MR_TEXT
-
-;
-; bss
-;
-
-INPUT_TEXT:             .res    81                          ; Input text.
-
-L16C9:                   .res    1                          ; Initialized, not used anywhere else
-
-L16CA:                  .res    128                         ; Unused storage
-
-L174A:                  .res    1                           ; Unused storage
-L174B:                  .res    1                           ; Unused storage
-L174C:                  .res    79                          ; Unused storage
-
-;;; summary: WORD ARGV[10]
-ARGV_0:
-ARGV_0_LO:              .res    1   ; $179B
-ARGV_0_HI:              .res    1   ; $179C
-ARGV_1:
-ARGV_1_LO:              .res    1   ; $179D
-ARGV_1_HI:              .res    1   ; $179E
-ARGV_2:
-ARGV_2_LO:              .res    1   ; $179F
-ARGV_2_HI:              .res    1   ; $17A0
-
-ARGV_3:
-ARGV_3_LO:              .res    1   ; $17A1
-ARGV_3_HI:              .res    1   ; $17A2
-
-ARGV_4:
-ARGV_4_LO:              .res    1   ; $17A3
-ARGV_4_HI:              .res    1   ; $17A4
-
-ARGV_5:
-ARGV_5_LO:              .res    1   ; $17A5
-ARGV_5_HI:              .res    1   ; $17A6
-
-ARGV_6:
-ARGV_6_LO:              .res    1   ; $17A7
-ARGV_6_HI:              .res    1   ; $17A8
-
-ARGV_7:
-ARGV_7_LO:              .res    1   ; $17A9
-ARGV_7_HI:              .res    1   ; $17AA
-
-ARGV_8:
-ARGV_8_LO:              .res    1   ; $17AB
-ARGV_8_HI:              .res    1   ; $17AC
-
-ARGV_9:
-ARGV_9_LO:              .res    1   ; $17AD
-ARGV_9_HI:              .res    1   ; $17AE
-
-FILE_NAME_TEXT:
-FILE_NAME_TEXT_DRIVE:   .res    1
-FILE_NAME_TEXT_COLON:   .res    1
-                        .res    23
-
-LOADED_PROGRAM_NAME:    .res    20
-
-; Disk status (might be too small)
-DISK_STATUS_TEXT:
-DISK_STATUS_TEXT_CODE_0:
-                        .res    1
-DISK_STATUS_TEXT_CODE_1:
-                        .res    10
-
-L17E7:                  .res    16                          ; Unused storage
-
-L17F7:                  .res    1                           ; Unused storage
-L17F8:                  .res    1                           ; Unused storage
-L17F9:                  .res    1                           ; Unused storage
-
-SYS_DEVICE:             .res    1                           ; $17FA
-SYS_DRIVE:              .res    1                           ; $17FB
-WORK_DEVICE:            .res    1                           ; $17FC
-WORK_DRIVE:             .res    1                           ; $17FD
-REDIRECT_INPUT_ACTIVE:  .res    1                           ; $17FE 0 = no , 1 = yes
-REDIRECT_OUTPUT_ACTIVE: .res    1                           ; $17FF 0 = no , 1 = yes

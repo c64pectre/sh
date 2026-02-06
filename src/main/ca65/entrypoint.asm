@@ -18,6 +18,9 @@
 
 .include "entrypoint.import.a65"
 
+.include "c64/petscii.inc"
+.include "c64/colors.inc"
+
 .include "entrypoint.inc"
 
 .segment "ENTRYPOINT"
