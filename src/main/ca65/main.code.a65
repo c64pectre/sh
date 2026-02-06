@@ -16,8 +16,6 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
-; TODO: l > l gives file named ","
-
 DEFAULT_DEVICE = 8
 DEFAULT_DRIVE = 0
 
@@ -1358,13 +1356,6 @@ L10AB:  .byte   0
     rts
 .endproc
 
-DIR_TEXT: 
-DIR_NAME_DOLLAR:
-L12A1:  .byte   PETSCII_DOLLAR
-DIR_NAME_DRIVE:
-L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
-        .res    16, PETSCII_NUL
-
 ;;; summary: Unsigned binary X#Y to decimal (max 9999)
 .proc BINARY_TO_DECIMAL
     stx BINARY_TO_DECIMAL_BINARY_LO
@@ -1430,16 +1421,6 @@ L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
     rts
 .endproc
 
-BINARY_TO_DECIMAL_BINARY_LO:        .byte   0               ; L1311
-BINARY_TO_DECIMAL_BINARY_HI:        .byte   0               ; L1312
-BINARY_TO_DECIMAL_TMP:              .byte   0               ; L1313
-BINARY_TO_DECIMAL_DECIMAL_DIGIT:    .byte   0               ; L1314
-BINARY_TO_DECIMAL_DECIMAL:                                  ; L1315
-        .byte   0       ; [0]
-        .byte   0       ; [1]
-        .byte   0       ; [2]
-        .byte   0       ; [3]
-
 ;;; summary: Read byte, checking status
 ;;; out:
 ;;;   A: Byte read, if OK
@@ -1461,8 +1442,6 @@ BINARY_TO_DECIMAL_DECIMAL:                                  ; L1315
     clc                                                     ; OK
     rts
 .endproc
-
-SAVE_KERNAL_READST:     .byte   0
 
 ;;; summary: Send command to work disk
 ;;; changed: ZP_23#ZP_24
@@ -1561,12 +1540,6 @@ SAVE_KERNAL_READST:     .byte   0
     rts
 .endproc
 
-; `rm` disk command text buffer ('s' = scratch, drive '0')
-RM_TEXT:        .byte   PETSCII_LATIN_LETTER_S
-RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
-                .byte   PETSCII_COLON
-                .res    20, PETSCII_NUL
-
 .proc CMD_MV
     lda ARGC_LO
     cmp # 3
@@ -1644,12 +1617,6 @@ RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
     jsr RESET_FILE_IO
     rts
 .endproc
-
-; `mv` disk command text buffer ('r' = rename, drive '0')
-MV_TEXT:        .byte   PETSCII_LATIN_LETTER_R
-MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
-                .byte   PETSCII_COLON
-                .res    40, PETSCII_NUL
 
 .proc CMD_PR
     lda ARGC_LO
@@ -1834,22 +1801,6 @@ MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
     jsr RESET_FILE_IO
     rts
 .endproc
-
-STRING_DEVICE_DRIVE:
-STRING_DEVICE:
-    .byte   "device: "
-STRING_DEVICE_NUMBER_0:
-    .byte   PETSCII_NUL
-STRING_DEVICE_NUMBER_1:
-    .byte   PETSCII_NUL
-
-STRING_DRIVE:
-    .byte   "  drive: "
-STRING_DRIVE_NUMBER_0:
-    .byte   PETSCII_NUL
-    .byte   PETSCII_RETURN
-    .byte   PETSCII_RETURN
-    .byte   PETSCII_NUL
 
 ;;; summary: Get device and drive number from string at ARGV_1 and ensure device is present.
 ;;; in:
