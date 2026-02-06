@@ -642,18 +642,6 @@ DISK_STATUS_TEXT_CODE_1 := AREA_2 + 1
     rts
 .endproc
 
-RESOURCE_STRING_COMMAND_NOT_FOUND:
-    .byte "command not found" , PETSCII_RETURN, PETSCII_NUL
-
-RESOURCE_STRING_CANT_OPEN_INPUT_FILE:
-    .byte "can't open input file" , PETSCII_RETURN, PETSCII_NUL
-
-RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE:
-    .byte "can't open output file" , PETSCII_RETURN, PETSCII_NUL
-
-RESOURCE_STRING_PRINTER_NOT_PRESENT:
-    .byte "printer not present" , PETSCII_RETURN, PETSCII_NUL
-
 ;;; summary: Load program
 ;;; in:
 ;;;   X: Device
@@ -1225,30 +1213,6 @@ L10AB:  .byte   0
     rts
 .endproc
 
-; Command name table
-
-COMMAND_NAME_TABLE:
-    ; exit  0 (was bye)
-    .byte   "exit" , PETSCII_NUL
-    ; load 0
-    .byte   "load" , PETSCII_NUL
-    ; ls 0 0 0
-    .byte   "ls" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
-    ; l 0 0 0 0
-    .byte   "l" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
-    ; rm 0 0 0
-    .byte   "rm" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
-    ; mv 0 0 0
-    .byte   "mv" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
-    ; pr 0 0 0
-    .byte   "pr" , PETSCII_NUL , PETSCII_NUL , PETSCII_NUL
-    ; disk 0
-    .byte   "disk" , PETSCII_NUL
-    ; work 0
-    .byte   "work" , PETSCII_NUL
-    ; sys 0 0
-    .byte   "sys" , PETSCII_NUL , PETSCII_NUL
-
 ;;; summary: Command: directory listing of work or system disk
 ;;; in:
 ;;;   X: Device address (8-31) DA
@@ -1465,19 +1429,6 @@ L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
 
     rts
 .endproc
-
-;;; summary: Byte binary to decimal conversion table
-TABLE_BINARY_TO_DECIMAL_LO:
-        .byte   1       ; [0]
-        .byte   10      ; [1]
-        .byte   100     ; [2]
-        .byte   232     ; [3]
-
-TABLE_BINARY_TO_DECIMAL_HI:
-        .byte   0       ; [0]
-        .byte   0       ; [1]
-        .byte   0       ; [2]
-        .byte   3       ; [3]
 
 BINARY_TO_DECIMAL_BINARY_LO:        .byte   0               ; L1311
 BINARY_TO_DECIMAL_BINARY_HI:        .byte   0               ; L1312
@@ -1779,9 +1730,6 @@ MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
     rts
 .endproc
 
-RESOURCE_STRING_DEVICE_NOT_PRESENT:
-    .byte "device not present" , PETSCII_RETURN , PETSCII_NUL
-
 ;;;summary: Show or change work disk
 .proc CMD_WORK
     lda ARGC_LO
@@ -1852,9 +1800,6 @@ RESOURCE_STRING_DEVICE_NOT_PRESENT:
     jsr RESET_FILE_IO
     rts
 .endproc
-
-RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
-    .byte "wrong number of arguments" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
 ;;; summary: Print device number in `X` (could be 8-30, so need 1 or 2 positions) and drive number in `Y' (0 or 1), and reset file I/O.
 ;;; in:
@@ -2022,12 +1967,3 @@ STRING_DRIVE_NUMBER_0:
 
     rts
 .endproc
-
-RESOURCE_STRING_DRIVE_NOT_PRESENT:
-    .byte   "drive not present" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
-
-; Disk command Memory-Read.
-MR_TEXT:
-    .byte   "m-r"
-MR_TEXT_AFTER:
-MR_TEXT_LENGTH = MR_TEXT_AFTER - MR_TEXT
