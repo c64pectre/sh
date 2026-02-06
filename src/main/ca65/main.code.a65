@@ -1229,16 +1229,23 @@ L10AB:  .byte   0
 ;;;   X: Device address (8-31) DA
 ;;;   Y: Drive number (0-1) DN
 .proc CMD_DIR
+    lda # PETSCII_DOLLAR
+    sta DISK_COMMAND_TEXT + 0
+
     txa                                                     ; A = DA
     pha                                                     ; STACK = [DA]...
         tya
         clc
         adc # PETSCII_DIGIT_ZERO
-        sta DIR_NAME_DRIVE
-        ldx # 3
+        sta DISK_COMMAND_TEXT + 1
+
+        ldx # 2
         lda ARGC_LO
         cmp # 2
         if_eq_then
+            lda # PETSCII_COLON
+            sta DISK_COMMAND_TEXT,x
+            inx
             from
                 lda ARGV_1_LO
                 sta ZP_23
@@ -1248,7 +1255,7 @@ L10AB:  .byte   0
             loop
                 lda [ZP_23],y
                 beq _end                                    ; break
-                sta DIR_NAME_DOLLAR,x
+                sta DISK_COMMAND_TEXT,x
             next
                 iny
                 inx
@@ -1263,15 +1270,11 @@ L10AB:  .byte   0
                 jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
                 rts
             else_end
-
-            lda # PETSCII_ASTERISK
-            sta DIR_NAME_DOLLAR,x
-            inx
         end
 
         txa                                                 ; A = DIR_NAME_DOLLAR.LENGTH
-        ldx # <DIR_NAME_DOLLAR
-        ldy # >DIR_NAME_DOLLAR
+        ldx # <DISK_COMMAND_TEXT
+        ldy # >DISK_COMMAND_TEXT
         jsr KERNAL_SETNAM
     pla                                                     ; A = DA , STACK = ...
     pha                                                     ; A = DA , STACK = [DA]...

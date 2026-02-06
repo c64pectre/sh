@@ -16,13 +16,6 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
-DIR_TEXT: 
-DIR_NAME_DOLLAR:
-L12A1:  .byte   PETSCII_DOLLAR
-DIR_NAME_DRIVE:
-L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
-        .res    16, PETSCII_NUL
-
 STRING_DEVICE_DRIVE:
 STRING_DEVICE:
     .byte   "device: "
