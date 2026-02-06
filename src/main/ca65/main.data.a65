@@ -23,16 +23,6 @@ DIR_NAME_DRIVE:
 L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
         .res    16, PETSCII_NUL
 
-BINARY_TO_DECIMAL_BINARY_LO:        .byte   0               ; L1311
-BINARY_TO_DECIMAL_BINARY_HI:        .byte   0               ; L1312
-BINARY_TO_DECIMAL_TMP:              .byte   0               ; L1313
-BINARY_TO_DECIMAL_DECIMAL_DIGIT:    .byte   0               ; L1314
-BINARY_TO_DECIMAL_DECIMAL:                                  ; L1315
-        .byte   0       ; [0]
-        .byte   0       ; [1]
-        .byte   0       ; [2]
-        .byte   0       ; [3]
-
 ; `rm` disk command text buffer ('s' = scratch, drive '0')
 RM_TEXT:        .byte   PETSCII_LATIN_LETTER_S
 RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO

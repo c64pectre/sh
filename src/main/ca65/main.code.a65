@@ -64,61 +64,71 @@ KERNAL_NNMI20 := $FE72                                      ; Kernal nnmi20 cont
 .export NEW_REDIRECT_INPUT_ACTIVE   := $17FE                ; $0344 0=no , 1=yes
 .export NEW_REDIRECT_OUTPUT_ACTIVE  := $17FF                ; $0345 0=no , 1=yes
 
-ARGV                        := $0346
-ARGV_0                      := ARGV + 0             ; $0346
-ARGV_0_LO                   := ARGV_0               ; $0346
-ARGV_0_HI                   := ARGV_0 + 1           ; $0347
-ARGV_1                      := ARGV + 2             ; $0348
-ARGV_1_LO                   := ARGV_1               ; $0348
-ARGV_1_HI                   := ARGV_1 + 1           ; $0349
-ARGV_2                      := ARGV + 4             ; $034A
-ARGV_2_LO                   := ARGV_2               ; $034A
-ARGV_2_HI                   := ARGV_2 + 1           ; $034B
-ARGV_3                      := ARGV + 6             ; $034C
-ARGV_3_LO                   := ARGV_3               ; $034C
-ARGV_3_HI                   := ARGV_3 + 1           ; $034D
-ARGV_4                      := ARGV + 8             ; $034E
-ARGV_4_LO                   := ARGV_4               ; $034E
-ARGV_4_HI                   := ARGV_4 + 1           ; $034F
-ARGV_5                      := ARGV + 10            ; $0350
-ARGV_5_LO                   := ARGV_5               ; $0350
-ARGV_5_HI                   := ARGV_5 + 1           ; $0351
-ARGV_6                      := ARGV + 12            ; $0352
-ARGV_6_LO                   := ARGV_6               ; $0352
-ARGV_6_HI                   := ARGV_6 + 1           ; $0353
-ARGV_7                      := ARGV + 14            ; $0354
-ARGV_7_LO                   := ARGV_7               ; $0354
-ARGV_7_HI                   := ARGV_7 + 1           ; $0355
-ARGV_8                      := ARGV + 16            ; $0356
-ARGV_8_LO                   := ARGV_8               ; $0356
-ARGV_8_HI                   := ARGV_8 + 1           ; $0357
-ARGV_9                      := ARGV + 18            ; $0358
-ARGV_9_LO                   := ARGV_9               ; $0358
-ARGV_9_HI                   := ARGV_9 + 1           ; $0359
+ARGV                            := $0346
+ARGV_0                          := ARGV + 0             ; $0346
+ARGV_0_LO                       := ARGV_0               ; $0346
+ARGV_0_HI                       := ARGV_0 + 1           ; $0347
+ARGV_1                          := ARGV + 2             ; $0348
+ARGV_1_LO                       := ARGV_1               ; $0348
+ARGV_1_HI                       := ARGV_1 + 1           ; $0349
+ARGV_2                          := ARGV + 4             ; $034A
+ARGV_2_LO                       := ARGV_2               ; $034A
+ARGV_2_HI                       := ARGV_2 + 1           ; $034B
+ARGV_3                          := ARGV + 6             ; $034C
+ARGV_3_LO                       := ARGV_3               ; $034C
+ARGV_3_HI                       := ARGV_3 + 1           ; $034D
+ARGV_4                          := ARGV + 8             ; $034E
+ARGV_4_LO                       := ARGV_4               ; $034E
+ARGV_4_HI                       := ARGV_4 + 1           ; $034F
+ARGV_5                          := ARGV + 10            ; $0350
+ARGV_5_LO                       := ARGV_5               ; $0350
+ARGV_5_HI                       := ARGV_5 + 1           ; $0351
+ARGV_6                          := ARGV + 12            ; $0352
+ARGV_6_LO                       := ARGV_6               ; $0352
+ARGV_6_HI                       := ARGV_6 + 1           ; $0353
+ARGV_7                          := ARGV + 14            ; $0354
+ARGV_7_LO                       := ARGV_7               ; $0354
+ARGV_7_HI                       := ARGV_7 + 1           ; $0355
+ARGV_8                          := ARGV + 16            ; $0356
+ARGV_8_LO                       := ARGV_8               ; $0356
+ARGV_8_HI                       := ARGV_8 + 1           ; $0357
+ARGV_9                          := ARGV + 18            ; $0358
+ARGV_9_LO                       := ARGV_9               ; $0358
+ARGV_9_HI                       := ARGV_9 + 1           ; $0359
 
 ;;; summary: Input text $035A-03AB (82 bytes)
-INPUT_TEXT                  := $035A
-INPUT_TEXT_LAST             := $03AB
+INPUT_TEXT                      := $035A
+INPUT_TEXT_LAST                 := $03AB
 
 ;;; summary: Name of loaded program, if any (then LOADED_PROGRAM_NAME[0] == 0) (20 bytes)
-LOADED_PROGRAM_NAME         := $03AC
-LOADED_PROGRAM_NAME_LAST    := $03BF
+LOADED_PROGRAM_NAME             := $03AC
+LOADED_PROGRAM_NAME_LAST        := $03BF
 
-SAVE_KVAR_COLOR             := $03C0
-SAVE_VIC_EC                 := $03C1
-SAVE_VIC_B0C                := $03C2
+SAVE_KVAR_COLOR                 := $03C0
+SAVE_VIC_EC                     := $03C1
+SAVE_VIC_B0C                    := $03C2
 
-SAVE_KERNAL_NMINV_LO        := $03C3
-SAVE_KERNAL_NMINV_HI        := $03C4
-SAVE_S                      := $03C5
-NMI_ENTRY_COUNT             := $03C6
+SAVE_KERNAL_NMINV_LO            := $03C3
+SAVE_KERNAL_NMINV_HI            := $03C4
+SAVE_S                          := $03C5
+NMI_ENTRY_COUNT                 := $03C6
 
-LOAD_PROGRAM_SAVE_X_DEVICE  := $03C7
+LOAD_PROGRAM_SAVE_X_DEVICE      := $03C7
 
-SAVE_KERNAL_READST          := $03C8
+SAVE_KERNAL_READST              := $03C8
 
-BUFFER_FIRST                := $03C9
-BUFFER_LAST                 := $03FF
+BINARY_TO_DECIMAL_BINARY_LO     := $03C9
+BINARY_TO_DECIMAL_BINARY_HI     := $03CA
+BINARY_TO_DECIMAL_TMP           := $03CB
+BINARY_TO_DECIMAL_DECIMAL_DIGIT := $03CC
+BINARY_TO_DECIMAL_DECIMAL       := $03CD
+BINARY_TO_DECIMAL_DECIMAL_0     := $03CD
+BINARY_TO_DECIMAL_DECIMAL_1     := $03CE
+BINARY_TO_DECIMAL_DECIMAL_2     := $03CF
+BINARY_TO_DECIMAL_DECIMAL_3     := $03D0
+
+BUFFER_FIRST                    := $03D1
+BUFFER_LAST                     := $03FF
 
 ; Memory area 2 $02A7-$02FF (89 bytes)
 AREA_2 := $02A7
