@@ -17,16 +17,16 @@
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
 RESOURCE_STRING_COMMAND_NOT_FOUND:
-    .byte "command not found" , PETSCII_RETURN, PETSCII_NUL
+    .byte "command not found" , PETSCII_RETURN , PETSCII_NUL
 
 RESOURCE_STRING_CANT_OPEN_INPUT_FILE:
-    .byte "can't open input file" , PETSCII_RETURN, PETSCII_NUL
+    .byte "can't open input file" , PETSCII_RETURN , PETSCII_NUL
 
 RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE:
-    .byte "can't open output file" , PETSCII_RETURN, PETSCII_NUL
+    .byte "can't open output file" , PETSCII_RETURN , PETSCII_NUL
 
 RESOURCE_STRING_PRINTER_NOT_PRESENT:
-    .byte "printer not present" , PETSCII_RETURN, PETSCII_NUL
+    .byte "printer not present" , PETSCII_RETURN , PETSCII_NUL
 
 RESOURCE_STRING_DEVICE_NOT_PRESENT:
     .byte "device not present" , PETSCII_RETURN , PETSCII_NUL
@@ -35,7 +35,10 @@ RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS:
     .byte "wrong number of arguments" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
 
 RESOURCE_STRING_DRIVE_NOT_PRESENT:
-    .byte   "drive not present" , PETSCII_RETURN , PETSCII_RETURN , PETSCII_NUL
+    .byte "drive not present" , PETSCII_RETURN , PETSCII_NUL
+
+RESOURCE_STRING_FILE_NAME_TOO_LOMG:
+    .byte "file name too long" , PETSCII_RETURN , PETSCII_NUL
 
 ; Disk command Memory-Read.
 MR_TEXT:

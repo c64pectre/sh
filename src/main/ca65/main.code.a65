@@ -43,7 +43,7 @@ ARGV_SIZE = ARGC_MAX
 
 PROGRAM_ENTRYPOINT = $1800                                  ; Entry point of loaded program
 
-RM_TEXT_OFFSET_NAME = 3
+FILE_NAME_MAX_LENGTH = 16
 
 KERNAL_NNMI20 := $FE72                                      ; Kernal nnmi20 continuation of NMI handing.
 
@@ -143,6 +143,8 @@ FILE_NAME_TEXT_COLON := AREA_2 + 1
 DISK_STATUS_TEXT := AREA_2
 DISK_STATUS_TEXT_CODE_0 := AREA_2
 DISK_STATUS_TEXT_CODE_1 := AREA_2 + 1
+
+DISK_COMMAND_TEXT := AREA_2
 
 .export SYS_DEVICE              := $17FA                    
 .export SYS_DRIVE               := $17FB
@@ -1505,35 +1507,48 @@ L10AB:  .byte   0
         jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
         rts
     else_end
-    
+
+    ; s
+    lda # PETSCII_LATIN_LETTER_S
+    sta DISK_COMMAND_TEXT + 0
+    ; Drive
     clc
     lda WORK_DRIVE
     adc # PETSCII_DIGIT_ZERO
-    sta RM_TEXT_DRIVE
+    sta DISK_COMMAND_TEXT + 1
+    ; :
+    lda # PETSCII_COLON
+    sta DISK_COMMAND_TEXT + 2
 
     from
         lda ARGV_1_LO
         sta ZP_23
         lda ARGV_1_HI
         sta ZP_24
-        ldx # RM_TEXT_OFFSET_NAME
+        ldx # 3
         ldy # 0
     loop
         lda [ZP_23],y
         beq _end                                            ; break
-        sta RM_TEXT,x
-    next
+        sta DISK_COMMAND_TEXT,x
         iny
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_eq_then
+            jsr ERROR_FILE_NAME_TOO_LOMG
+            rts
+        else_end
+    next
         inx
         bne _loop                                           ; bra
     end
 
     lda # PETSCII_RETURN
-    sta RM_TEXT,x
+    sta DISK_COMMAND_TEXT,x
     inx
     txa
-    ldx # <RM_TEXT
-    ldy # >RM_TEXT
+    ; A = DISK_COMMAND_TEXT.LENGTH
+    ldx # <DISK_COMMAND_TEXT
+    ldy # >DISK_COMMAND_TEXT
     jsr KERNAL_SETNAM
     lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
     tay
@@ -1559,10 +1574,16 @@ L10AB:  .byte   0
         rts
     else_end
 
+    lda # PETSCII_LATIN_LETTER_R
+    sta DISK_COMMAND_TEXT + 0
+
     clc
     lda WORK_DRIVE
     adc # PETSCII_DIGIT_ZERO
-    sta MV_TEXT_DRIVE
+    sta DISK_COMMAND_TEXT + 1
+
+    lda # PETSCII_COLON
+    sta DISK_COMMAND_TEXT + 2
 
     pha
         from
@@ -1575,20 +1596,26 @@ L10AB:  .byte   0
         loop
             lda [ZP_23],y
             beq _end                                        ; break
-            sta MV_TEXT,x
+            sta DISK_COMMAND_TEXT,x
             iny
+            cpy # FILE_NAME_MAX_LENGTH + 1
+            if_eq_then
+                jsr ERROR_FILE_NAME_TOO_LOMG
+                rts
+            else_end
+        next
             inx
             bne _loop                                       ; bra
         end
 
         lda # PETSCII_EQUALS_SIGN
-        sta MV_TEXT,x
+        sta DISK_COMMAND_TEXT,x
         inx
     pla
-    sta MV_TEXT,x
+    sta DISK_COMMAND_TEXT,x
     inx
     lda # PETSCII_COLON
-    sta MV_TEXT,x
+    sta DISK_COMMAND_TEXT,x
     inx
     from
         lda ARGV_1_LO
@@ -1599,19 +1626,24 @@ L10AB:  .byte   0
     loop
         lda [ZP_23],y
         beq _end                                            ; break
-        sta MV_TEXT,x
-    next
+        sta DISK_COMMAND_TEXT,x
         iny
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_eq_then
+            jsr ERROR_FILE_NAME_TOO_LOMG
+            rts
+        else_end
+    next
         inx
         bne _loop
     end
 
     lda # PETSCII_RETURN
-    sta MV_TEXT,x
+    sta DISK_COMMAND_TEXT,x
     inx
     txa
-    ldx # <MV_TEXT
-    ldy # >MV_TEXT
+    ldx # <DISK_COMMAND_TEXT
+    ldy # >DISK_COMMAND_TEXT
     jsr KERNAL_SETNAM
     lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
     tay
@@ -1927,5 +1959,14 @@ L10AB:  .byte   0
         sec                                                 ; FAIL
     finally_end
 
+    rts
+.endproc
+
+;;; summary: File name too long
+.proc ERROR_FILE_NAME_TOO_LOMG
+    ldx # <RESOURCE_STRING_FILE_NAME_TOO_LOMG
+    ldy # >RESOURCE_STRING_FILE_NAME_TOO_LOMG
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
     rts
 .endproc

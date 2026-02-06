@@ -23,18 +23,6 @@ DIR_NAME_DRIVE:
 L12A2:  .byte   PETSCII_DIGIT_ZERO , PETSCII_COLON
         .res    16, PETSCII_NUL
 
-; `rm` disk command text buffer ('s' = scratch, drive '0')
-RM_TEXT:        .byte   PETSCII_LATIN_LETTER_S
-RM_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
-                .byte   PETSCII_COLON
-                .res    20, PETSCII_NUL
-
-; `mv` disk command text buffer ('r' = rename, drive '0')
-MV_TEXT:        .byte   PETSCII_LATIN_LETTER_R
-MV_TEXT_DRIVE:  .byte   PETSCII_DIGIT_ZERO
-                .byte   PETSCII_COLON
-                .res    40, PETSCII_NUL
-
 STRING_DEVICE_DRIVE:
 STRING_DEVICE:
     .byte   "device: "
