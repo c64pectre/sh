@@ -1,68 +1,170 @@
+# Call flow
+
 ENTRYPOINT
-    EXECUTE
-        MY_NMI_HANDLER
-        SHOW_PROMPT
-        KEYBOARD_READ_LINE_TO_INPUT_TEXT
-        PROCESS_INPUT_TEXT
-            REDIRECT_INPUT_FROM_FILE
-                GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-                PROCESS_DISK_STATUS
-                    OUT_DISK_STATUS_TEXT
-            OUT_STRING
-            RESET_FILE_IO
-            REDIRECT_OUTPUT_TO_PRINTER
-            REDIRECT_OUTPUT_TO_FILE
-                GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-                PROCESS_DISK_STATUS*
-            PROC_A
-            TRY_BUILT_IN_COMMAND
-                STRING_COMPARE_2A_57
+    MAIN
+        INITIALIZE
+        RUN
+            MY_NMI_HANDLER
+                KERNAL_NNMI20
+                KERNAL_STOP
+                KERNAL_IOINIT
+                KERNAL_CINT
+                KERNAL_CLOSE
+                KERNAL_CHROUT
+                RUN *
+            KERNAL_CHROUT
+            SHOW_PROMPT
+                KERNAL_CHROUT
+            KEYBOARD_READ_LINE_TO_INPUT_TEXT
+                KERNAL_CHRIN
+                KERNAL_CHROUT
+            PROCESS_INPUT_TEXT
+                REDIRECT_INPUT_FROM_FILE
+                    GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
+                    KERNAL_SETNAM
+                    KERNAL_SETLFS
+                    KERNAL_OPEN
+                    PROCESS_DISK_STATUS
+                        KERNAL_SETNAM
+                        KERNAL_SETLFS
+                        KERNAL_OPEN
+                        KERNAL_CHKIN
+                        KERNAL_CHRIN
+                        OUT_DISK_STATUS_TEXT
+                            KERNAL_CHROUT
+                OUT_STRING
+                    KERNAL_CHROUT
                 RESET_FILE_IO
-                LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-                    STRING_COMPARE_2A_57
-                    LOAD_PROGRAM_FROM_WORK_OR_SYS_DEVICE
-                        LOAD_PROGRAM
-                        OUT_STRING
-                RESET_FILE_IO
-                ERROR_WRONG_NUMBER_OF_ARGUMENTS
-                    OUT_STRING
-                    RESET_FILE_IO
-                CMD_DIR
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    ERROR_DEVICE_NOT_PRESENT
-                        OUT_STRING
-                        RESET_FILE_IO
-                    PROCESS_DISK_STATUS*
-                    RESET_FILE_IO
-                    PROC_B
-                    PROC_C
-                    IN_BYTE
-                CMD_RM
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    ERROR_DEVICE_NOT_PRESENT*
-                    PROCESS_DISK_STATUS*
-                    RESET_FILE_IO
-                CMD_MV
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    ERROR_DEVICE_NOT_PRESENT*
-                    PROCESS_DISK_STATUS*
-                    RESET_FILE_IO
-                CMD_DISK
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    PROCESS_DISK_STATUS*
-                    RESET_FILE_IO
-                CMD_WORK
-                    OUT_DEVICE_DRIVE
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    CHANGE_DEVICE_DRIVE
-                        OUT_STRING
-                    RESET_FILE_IO
-                CMD_SYS
-                    OUT_DEVICE_DRIVE*
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS*
-                    CHANGE_DEVICE_DRIVE*
-                    RESET_FILE_IO
-                STRING_COMPARE_2A_57
-            LOAD_PROGRAM_IF_NOT_ALREADY_LOADED*
-            EXECUTE_PROGRAM
-                $1800
+                    KERNAL_CLOSE
+                    KERNAL_CLRCHN
+                REDIRECT_OUTPUT_TO_PRINTER
+                    KERNAL_SETLFS
+                    KERNAL_SETNAM
+                    KERNAL_OPEN
+                    KERNAL_CHKOUT
+                    KERNAL_CLRCHN
+                REDIRECT_OUTPUT_TO_FILE
+                    GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE *
+                    KERNAL_SETNAM
+                    KERNAL_SETLFS
+                    KERNAL_OPEN
+                    PROCESS_DISK_STATUS *
+                SET_NEXT_ARGV
+                TRY_BUILT_IN_COMMAND
+                    STRING_COMPARE
+                    RESET_FILE_IO *
+                    ERROR_WRONG_NUMBER_OF_ARGUMENTS
+                        OUT_STRING *
+                        RESET_FILE_IO *
+                    LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+                        STRING_COMPARE *
+                        LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
+                            LOAD_PROGRAM
+                                KERNAL_SETNAM
+                                KERNAL_SETLFS
+                                KERNAL_LOAD
+                                KERNAL_SETLFS
+                                KERNAL_SETNAM
+                                KERNAL_OPEN
+                                KERNAL_CHKIN
+                                KERNAL_CHRIN
+                                KERNAL_CLOSE
+                                KERNAL_CLRCHN
+                            OUT_STRING *
+                    CMD_DIR
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        KERNAL_SETNAM
+                        KERNAL_SETLFS
+                        KERNAL_OPEN
+                        ERROR_DEVICE_NOT_PRESENT
+                            KERNAL_CLOSE
+                            OUT_STRING *
+                            RESET_FILE_IO *
+                        PROCESS_DISK_STATUS *
+                        KERNAL_CLOSE
+                        RESET_FILE_IO *
+                        BUFFERED_OUT_INIT
+                        KERNAL_CHKIN
+                        KERNAL_CHRIN
+                        BUFFERED_OUT_BYTE
+                           BUFFERED_OUT_FLUSH
+                                KERNAL_CLRCHN
+                                KERNAL_CHKOUT
+                                KERNAL_CHKIN
+                                BUFFERED_OUT_INIT *
+                        IN_BYTE
+                            KERNAL_CHRIN
+                            KERNAL_READST
+                       BINARY_TO_DECIMAL
+                        BUFFERED_OUT_FLUSH *
+                        KERNAL_CLOSE
+                        RESET_FILE_IO *
+                    CMD_RM
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS
+                            OUT_STRING *
+                            RESET_FILE_IO *
+                        ERROR_FILE_NAME_TOO_LONG
+                            OUT_STRING *
+                            RESET_FILE_IO *
+                        KERNAL_SETNAM
+                        KERNAL_SETLFS
+                        KERNAL_OPEN
+                        ERROR_DEVICE_NOT_PRESENT *
+                        PROCESS_DISK_STATUS *
+                        RESET_FILE_IO *
+                    CMD_MV
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        ERROR_FILE_NAME_TOO_LONG *
+                        KERNAL_SETNAM
+                        KERNAL_SETLFS
+                        KERNAL_OPEN
+                        ERROR_DEVICE_NOT_PRESENT *
+                        PROCESS_DISK_STATUS *
+                        RESET_FILE_IO *
+                    CMD_PR
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        KERNAL_SETNAM
+                        KERNAL_SETLFS
+                        KERNAL_OPEN
+                        ERROR_DEVICE_NOT_PRESENT *
+                        PROCESS_DISK_STATUS *
+                        KERNAL_CLOSE
+                        RESET_FILE_IO *
+                        BUFFERED_OUT_INIT *
+                        KERNAL_CHKIN
+                        KERNAL_CHRIN
+                        KERNAL_READST
+                        BUFFERED_OUT_BYTE *
+                        BUFFERED_OUT_FLUSH *
+                        KERNAL_CLOSE
+                        RESET_FILE_IO *
+                    CMD_DISK
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        KERNAL_SETLFS
+                        KERNAL_SETNAM
+                        KERNAL_OPEN
+                        KERNAL_CHKOUT
+                        PROCESS_DISK_STATUS *
+                        RESET_FILE_IO *
+                    CMD_WORK
+                        OUT_DEVICE_DRIVE
+                            OUT_STRING *
+                            RESET_FILE_IO *
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        CHANGE_DEVICE_DRIVE
+                            KERNAL_SETLFS
+                            KERNAL_SETNAM
+                            KERNAL_OPEN
+                            KERNAL_CLOSE
+                            OUT_STRING *
+                        RESET_FILE_IO *
+                    CMD_SYS
+                        OUT_DEVICE_DRIVE *
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
+                        CHANGE_DEVICE_DRIVE *
+                        RESET_FILE_IO *
+                LOAD_PROGRAM_IF_NOT_ALREADY_LOADED *
+                    STRING_COMPARE *
+                    LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK *
+                EXECUTE_PROGRAM
+                    $1800

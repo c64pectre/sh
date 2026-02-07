@@ -16,7 +16,7 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
-.export entrypoint
+.export ENTRYPOINT
 .export CONFIG_BORDER_COLOR
 .export CONFIG_BACKGROUND_COLOR
 .export CONFIG_FOREGROUND_COLOR_CHAR

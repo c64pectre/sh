@@ -16,4 +16,4 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
-.export main
+.export MAIN

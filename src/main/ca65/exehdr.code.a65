@@ -21,10 +21,10 @@ basic_begin:
     .word  1    ; Line number
     .byte BASIC_TOKEN_SYS
     .byte ' '
-    .byte < (((entrypoint / 1000) .mod 10) + '0')
-    .byte < (((entrypoint /  100) .mod 10) + '0')
-    .byte < (((entrypoint /   10) .mod 10) + '0')
-    .byte < (((entrypoint /    1) .mod 10) + '0')
+    .byte < (((ENTRYPOINT / 1000) .mod 10) + '0')
+    .byte < (((ENTRYPOINT /  100) .mod 10) + '0')
+    .byte < (((ENTRYPOINT /   10) .mod 10) + '0')
+    .byte < (((ENTRYPOINT /    1) .mod 10) + '0')
     .byte BASIC_TOKEN_EOL
 basic_next_line:
     .word BASIC_NEXT_LINE_END_MARKER

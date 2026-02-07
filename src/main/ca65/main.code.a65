@@ -165,9 +165,11 @@ ZP_27 := < $27  ; Was ZP_59
 
 ;region Main
 
-.proc main
+;;; summary: Main
+.proc MAIN
     jsr INITIALIZE
     jsr RUN
+
     rts
 .endproc
 
@@ -175,6 +177,7 @@ ZP_27 := < $27  ; Was ZP_59
 
 ;region Implementation
 
+;;; summary: Initialize
 .proc INITIALIZE
     ; Save NMI handler
     lda KERNAL_NMINV_LO
@@ -239,6 +242,7 @@ ZP_27 := < $27  ; Was ZP_59
     rts
 .endproc
 
+;;; summary: Run loop
 .proc RUN
     ; Set our NMI handler (set here because RUN-STOP RESTORE resets to default handler)
     lda # <MY_NMI_HANDLER
@@ -264,7 +268,9 @@ ZP_27 := < $27  ; Was ZP_59
     lda # PETSCII_DOLLAR
     jsr KERNAL_CHROUT
     lda # PETSCII_SPACE
-    jmp KERNAL_CHROUT
+    jsr KERNAL_CHROUT
+
+    rts
 .endproc
 
 .proc KEYBOARD_READ_LINE_TO_INPUT_TEXT
@@ -427,6 +433,7 @@ ZP_27 := < $27  ; Was ZP_59
     else_end
 
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -556,10 +563,10 @@ ZP_27 := < $27  ; Was ZP_59
         rts
     else_end
 
+  BREAK1:
     jsr STRING_COMPARE                                ; Why?
 
     rts
-    
 .endproc
 
 ;;; summary: Load program with name from `LOADED_PROGRAM_NAME`, if not already done so.
@@ -575,36 +582,47 @@ ZP_27 := < $27  ; Was ZP_59
     jsr STRING_COMPARE
     bne LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
     clc                                                     ; OK
+
     rts
 .endproc
 
 ;;; summary: load program from work disk or else from system disk
 .proc LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
-            ; Try work disk
-            ldx     WORK_DEVICE
-            ldy     WORK_DRIVE
-            jsr     LOAD_PROGRAM
-            bcc     L0E2F                                   ; Load succeeded
-            ; Load from work disk failed; try system disk
-            ldx     SYS_DEVICE
-            ldy     SYS_DRIVE
-            jsr     LOAD_PROGRAM
-            bcc     L0E2F                                   ; Load succeeded
-            ; Load failed
-            ldx     # <RESOURCE_STRING_COMMAND_NOT_FOUND
-            ldy     # >RESOURCE_STRING_COMMAND_NOT_FOUND
-            jsr     OUT_STRING
+    ; Try work disk
+    ldx WORK_DEVICE
+    ldy WORK_DRIVE
+    jsr LOAD_PROGRAM
+    if_cs_then
+        ; Load from work disk failed.
+        ; Try system disk
+        ldx SYS_DEVICE
+        ldy SYS_DRIVE
+        jsr LOAD_PROGRAM
+        if_cs_then
+            ; Load from system diusk failed too.
+            ldx # <RESOURCE_STRING_COMMAND_NOT_FOUND
+            ldy # >RESOURCE_STRING_COMMAND_NOT_FOUND
+            jsr OUT_STRING
             sec                                             ; FAIL
+
             rts
-    L0E2F:
-            ldy     # 19
-    L0E31:
-            lda     [ZP_23],y
-            sta     LOADED_PROGRAM_NAME,y
-            dey
-            bpl     L0E31
-            clc                                             ; OK
-            rts
+        else_end
+    else_end
+
+    ; Save name of loaded program.
+    from
+        ldy # 19
+    loop
+        lda [ZP_23],y
+        sta LOADED_PROGRAM_NAME,y
+    next
+        dey
+        bpl _loop
+    end
+
+    clc                                                     ; OK
+
+    rts
 .endproc
 
 ;;; summary: Execute loaded program
@@ -655,7 +673,6 @@ ZP_27 := < $27  ; Was ZP_59
 
 ;;; summary: Back to default file I/O
 .proc RESET_FILE_IO
-
     lda # REDIRECT_INPUT_FA
     jsr KERNAL_CLOSE
 
@@ -1183,6 +1200,7 @@ ZP_27 := < $27  ; Was ZP_59
     lda # FILE_FA
     jsr KERNAL_CLOSE
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1226,6 +1244,7 @@ ZP_27 := < $27  ; Was ZP_59
     lda WORK_DEVICE
     jsr PROCESS_DISK_STATUS
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1264,7 +1283,7 @@ ZP_27 := < $27  ; Was ZP_59
         iny
         cpy # FILE_NAME_MAX_LENGTH + 1
         if_eq_then
-            jsr ERROR_FILE_NAME_TOO_LOMG
+            jsr ERROR_FILE_NAME_TOO_LONG
             rts
         else_end
     next
@@ -1293,6 +1312,7 @@ ZP_27 := < $27  ; Was ZP_59
     lda WORK_DEVICE
     jsr PROCESS_DISK_STATUS
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1331,7 +1351,7 @@ ZP_27 := < $27  ; Was ZP_59
             iny
             cpy # FILE_NAME_MAX_LENGTH + 1
             if_eq_then
-                jsr ERROR_FILE_NAME_TOO_LOMG
+                jsr ERROR_FILE_NAME_TOO_LONG
                 rts
             else_end
         next
@@ -1361,7 +1381,7 @@ ZP_27 := < $27  ; Was ZP_59
         iny
         cpy # FILE_NAME_MAX_LENGTH + 1
         if_eq_then
-            jsr ERROR_FILE_NAME_TOO_LOMG
+            jsr ERROR_FILE_NAME_TOO_LONG
             rts
         else_end
     next
@@ -1389,6 +1409,7 @@ ZP_27 := < $27  ; Was ZP_59
     lda WORK_DEVICE
     jsr PROCESS_DISK_STATUS
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1458,6 +1479,7 @@ ZP_27 := < $27  ; Was ZP_59
     lda # FILE_FA
     jsr KERNAL_CLOSE
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1657,6 +1679,7 @@ ZP_27 := < $27  ; Was ZP_59
         sta SAVE_KERNAL_READST
     pla
     clc                                                     ; OK
+
     rts
 .endproc
 
@@ -1691,6 +1714,7 @@ ZP_27 := < $27  ; Was ZP_59
     ldy # >STRING_DEVICE
     jsr OUT_STRING
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1823,6 +1847,7 @@ ZP_27 := < $27  ; Was ZP_59
     ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
     jsr OUT_STRING
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1832,15 +1857,17 @@ ZP_27 := < $27  ; Was ZP_59
     ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
     jsr OUT_STRING
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
 ;;; summary: Error: File name too long
-.proc ERROR_FILE_NAME_TOO_LOMG
+.proc ERROR_FILE_NAME_TOO_LONG
     ldx # <RESOURCE_STRING_FILE_NAME_TOO_LOMG
     ldy # >RESOURCE_STRING_FILE_NAME_TOO_LOMG
     jsr OUT_STRING
     jsr RESET_FILE_IO
+
     rts
 .endproc
 
@@ -1852,6 +1879,7 @@ ZP_27 := < $27  ; Was ZP_59
 .proc BUFFERED_OUT_INIT
     lda # 0
     sta BUFFERED_OUT_CURSOR
+
     rts
 .endproc
 
@@ -1875,6 +1903,7 @@ ZP_27 := < $27  ; Was ZP_59
             jsr BUFFERED_OUT_FLUSH
         else_end
     ldx BUFFERED_OUT_SAVE_X
+
     rts
 .endproc
 
@@ -1910,6 +1939,7 @@ ZP_27 := < $27  ; Was ZP_59
     else_end
 
     jsr BUFFERED_OUT_INIT
+
     rts
 .endproc
 
@@ -1919,99 +1949,98 @@ ZP_27 := < $27  ; Was ZP_59
 
 ;;; summary: My NMI handler.
 ;;; notes:
-;;;   We need to catch <RUN STOP> + <RESTORE> else we go back to BASIC
-;;;   Bug: Pressing <RUN STOP> + <RESTORE> during load is handled incorrectly.
+;;;   We catch <RUN STOP> + <RESTORE> else we go back to BASIC.
 .proc MY_NMI_HANDLER
     ; check I = 1
 
     ; Check for and prevent re-entry
     pha
-    lda NMI_ENTRY_COUNT
-    if_ne_then
-        ; Already in an NMI call (not sure how this could happen, maybe on bouncing RESTORE key)
-        pla
-        rti
-    else_end
-
-    ; First entry
-    txa
-    pha
-        tya
-        pha
-            ; Disable all CIA-2 interrupts (why?)
-            lda # $7F
-            sta CIA_2_ICR
-            ; Process any pending CIA-2 interrupt.
-            ; NMI occured?
-            ldy CIA_2_ICR
-            if_mi_then
-                ; NMI occured yes
-                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
-            else_end
-
-            ; NMI occured no
-            ; RESTORE key was pressed
-            ; STOP key pressed? Z=1 (eq): yes, Z=0 (ne): no
-            jsr KERNAL_STOP
-            if_ne_then
-                ; STOP key was not pressed
-                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
-            else_end
-
-            ; STOP key was pressed
-            inc NMI_ENTRY_COUNT                          ; Prevent re-entry
-
-            ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
-            lda # CPU_PORT_DATA_DEFAULT
-            sta CPU_PORT_DATA
-
-            ; Set text screen base to default (in case it got changed).
-            lda # >SCREEN_TEXT_RAM_BASE
-            sta KVAR_HIBASE
-
-            ; Save and restore colors because called Kernal routine changes them.
-            lda KVAR_COLOR
-            pha
-                lda VIC_EC
-                pha
-                    lda VIC_B0C
-                    pha
-                        jsr KERNAL_IOINIT
-                        jsr KERNAL_CINT
-                    pla
-                    sta VIC_B0C
-                pla
-                sta VIC_EC
+        lda NMI_ENTRY_COUNT
+        if_ne_then
+            ; Already in an NMI call (not sure how this could happen, maybe on bouncing RESTORE key)
             pla
-            sta KVAR_COLOR
+            rti
+        else_end
 
-            ; Restore stack pointer (stack might have been messed up).
-            ldx SAVE_S
-            txs
+        ; First entry
+        txa
+        pha
+            tya
+            pha
+                ; Disable all CIA-2 interrupts (why?)
+                lda # $7F
+                sta CIA_2_ICR
+                ; Process any pending CIA-2 interrupt.
+                ; NMI occured?
+                ldy CIA_2_ICR
+                if_mi_then
+                    ; NMI occured yes
+                    jmp KERNAL_NNMI20                       ; Continue at original Kernal NMI handler
+                else_end
 
-            ; Enable interrupts so we can do file I/O.
-            cli
+                ; NMI occured no
+                ; RESTORE key was pressed
+                ; STOP key pressed? Z=1 (eq): yes, Z=0 (ne): no
+                jsr KERNAL_STOP
+                if_ne_then
+                    ; STOP key was not pressed
+                    jmp KERNAL_NNMI20                       ; Continue at original Kernal NMI handler
+                else_end
 
-            ; Close all files 14..1. Why not call KERNAL_CLALL?
-            from
-                ldx # 15
-            loop
-                txa
+                ; STOP key was pressed
+                inc NMI_ENTRY_COUNT                         ; Prevent re-entry
+
+                ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
+                lda # CPU_PORT_DATA_DEFAULT
+                sta CPU_PORT_DATA
+
+                ; Set text screen base to default (in case it got changed).
+                lda # >SCREEN_TEXT_RAM_BASE
+                sta KVAR_HIBASE
+
+                ; Save and restore colors because called Kernal routine changes them.
+                lda KVAR_COLOR
                 pha
-                    jsr KERNAL_CLOSE                        ; A+ X+ Y+ C+ N+ V? Z+
+                    lda VIC_EC
+                    pha
+                        lda VIC_B0C
+                        pha
+                            jsr KERNAL_IOINIT
+                            jsr KERNAL_CINT
+                        pla
+                        sta VIC_B0C
+                    pla
+                    sta VIC_EC
                 pla
-                tax
-            next
-                dex
-                bne _loop
-            end
+                sta KVAR_COLOR
 
-            lda     # PETSCII_RETURN
-            jsr     KERNAL_CHROUT
+                ; Restore stack pointer (stack might have been messed up).
+                ldx SAVE_S
+                txs
 
-            dec     NMI_ENTRY_COUNT                          ; Allow entry
+                ; Enable interrupts so we can do file I/O.
+                cli
 
-            jmp     RUN                                     ; Resume
+                ; Close all files 14..1. Why not call KERNAL_CLALL?
+                from
+                    ldx # 15
+                loop
+                    txa
+                    pha
+                        jsr KERNAL_CLOSE                    ; A+ X+ Y+ C+ N+ V? Z+
+                    pla
+                    tax
+                next
+                    dex
+                    bne _loop
+                end
+
+                lda # PETSCII_RETURN
+                jsr KERNAL_CHROUT
+
+                dec NMI_ENTRY_COUNT                         ; Allow entry
+
+                jmp RUN                                     ; Resume
 .endproc
 
 ;endregion
