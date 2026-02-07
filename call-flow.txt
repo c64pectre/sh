@@ -2,163 +2,162 @@
 
 ENTRYPOINT
     MAIN
-        INITIALIZE
-        RUN
-            MY_NMI_HANDLER
+        INITIALIZE ................................................ A+ X+ Y-
+            KERNAL_CHROUT ......................................... A- X- Y-
+        RUN ....................................................... A+ X- Y-
+            MY_NMI_HANDLER ........................................ 
                 KERNAL_NNMI20
                 KERNAL_STOP
                 KERNAL_IOINIT
                 KERNAL_CINT
-                KERNAL_CLOSE
-                KERNAL_CHROUT
+                KERNAL_CLOSE ...................................... A+ X+ Y+
+                KERNAL_CHROUT ..................................... A- X- Y-
                 RUN *
-            KERNAL_CHROUT
-            SHOW_PROMPT
-                KERNAL_CHROUT
-            KEYBOARD_READ_LINE_TO_INPUT_TEXT
-                KERNAL_CHRIN
-                KERNAL_CHROUT
-            PROCESS_INPUT_TEXT
-                REDIRECT_INPUT_FROM_FILE
-                    GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
-                    KERNAL_SETNAM
-                    KERNAL_SETLFS
-                    KERNAL_OPEN
-                    PROCESS_DISK_STATUS
-                        KERNAL_SETNAM
-                        KERNAL_SETLFS
-                        KERNAL_OPEN
-                        KERNAL_CHKIN
-                        KERNAL_CHRIN
-                        OUT_DISK_STATUS_TEXT
-                            KERNAL_CHROUT
-                OUT_STRING
-                    KERNAL_CHROUT
-                RESET_FILE_IO
-                    KERNAL_CLOSE
-                    KERNAL_CLRCHN
-                REDIRECT_OUTPUT_TO_PRINTER
-                    KERNAL_SETLFS
-                    KERNAL_SETNAM
-                    KERNAL_OPEN
-                    KERNAL_CHKOUT
-                    KERNAL_CLRCHN
-                REDIRECT_OUTPUT_TO_FILE
+            KERNAL_CHROUT ......................................... A- X- Y-
+            SHOW_PROMPT ........................................... A+ X- Y-
+                KERNAL_CHROUT ..................................... A- X- Y-
+            KEYBOARD_READ_LINE_TO_INPUT_TEXT ...................... A- X- Y+
+                KERNAL_CHRIN ...................................... A+ X+ Y-
+                KERNAL_CHROUT ..................................... A- X- Y-
+            PROCESS_INPUT_TEXT .................................... A+ X+ Y+ ZP_23 ZP_24
+                REDIRECT_INPUT_FROM_FILE .......................... A+ X+ Y+ ZP_24
+                    GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE .. A+ X+ Y+ ZP_23
+                    KERNAL_SETNAM ................................. A- X- Y-
+                    KERNAL_SETLFS ................................. A- X- Y-
+                    KERNAL_OPEN ................................... A+ X+ Y+
+                    PROCESS_DISK_STATUS ........................... A+ X+ Y+
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
+                        KERNAL_CHKIN .............................. A+ X+ Y+
+                        KERNAL_CHRIN .............................. A+ X+ Y-
+                        OUT_DISK_STATUS_TEXT ...................... A+ X- Y+
+                            KERNAL_CHROUT ......................... A- X- Y-
+                OUT_STRING ........................................ A+ X- Y+
+                    KERNAL_CHROUT ................................. A- X- Y-
+                RESET_FILE_IO ..................................... A+ X- Y-
+                    KERNAL_CLOSE .................................. A+ X+ Y+
+                    KERNAL_CLRCHN ................................. A+ X+ Y-
+                REDIRECT_OUTPUT_TO_PRINTER ........................ A+ X+ Y+ ZP_23 ZP_24
+                    KERNAL_SETLFS ................................. A- X- Y-
+                    KERNAL_SETNAM ................................. A- X- Y-
+                    KERNAL_OPEN ................................... A+ X+ Y+
+                    KERNAL_CHKOUT ................................. A+ X+ Y-
+                    KERNAL_CLRCHN ................................. A+ X+ Y-
+                REDIRECT_OUTPUT_TO_FILE ........................... A+ X+ Y+ ZP_24
                     GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE *
-                    KERNAL_SETNAM
-                    KERNAL_SETLFS
-                    KERNAL_OPEN
+                    KERNAL_SETNAM ................................. A- X- Y-
+                    KERNAL_SETLFS ................................. A- X- Y-
+                    KERNAL_OPEN ................................... A+ X+ Y+
                     PROCESS_DISK_STATUS *
-                SET_NEXT_ARGV
-                TRY_BUILT_IN_COMMAND
-                    STRING_COMPARE
+                SET_NEXT_ARGV ..................................... A+ X- Y+
+                TRY_BUILT_IN_COMMAND .............................. A+ X+ Y+ ZP_25 ZP_26 ZP_27
+                    STRING_COMPARE ................................ A+ X- Y+
                     RESET_FILE_IO *
-                    ERROR_WRONG_NUMBER_OF_ARGUMENTS
+                    ERROR_WRONG_NUMBER_OF_ARGUMENTS ............... A- X+ Y+
                         OUT_STRING *
                         RESET_FILE_IO *
-                    LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+                    LOAD_PROGRAM_IF_NOT_ALREADY_LOADED ............ A+ X- Y- ZP_25 ZP_26
                         STRING_COMPARE *
-                        LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
-                            LOAD_PROGRAM
-                                KERNAL_SETNAM
-                                KERNAL_SETLFS
-                                KERNAL_LOAD
-                                KERNAL_SETLFS
-                                KERNAL_SETNAM
-                                KERNAL_OPEN
-                                KERNAL_CHKIN
-                                KERNAL_CHRIN
-                                KERNAL_CLOSE
-                                KERNAL_CLRCHN
+                        LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK ........ A+ X+ Y+
+                            LOAD_PROGRAM .......................... A+ X+ Y+
+                                KERNAL_SETNAM ..................... A- X- Y-
+                                KERNAL_SETLFS ..................... A- X- Y-
+                                KERNAL_LOAD ....................... A+ X+ Y+
+                                KERNAL_OPEN ....................... A+ X+ Y+
+                                KERNAL_CHKIN ...................... A+ X+ Y+
+                                KERNAL_CHRIN ...................... A+ X+ Y-
+                                KERNAL_CLOSE ...................... A+ X+ Y+
+                                KERNAL_CLRCHN ..................... A+ X+ Y-
                             OUT_STRING *
-                    CMD_DIR
+                    CMD_DIR ....................................... A+ X+ Y+ ZP_23 ZP_24
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
-                        KERNAL_SETNAM
-                        KERNAL_SETLFS
-                        KERNAL_OPEN
-                        ERROR_DEVICE_NOT_PRESENT
-                            KERNAL_CLOSE
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
+                        ERROR_DEVICE_NOT_PRESENT .................. A+ X+ Y+
+                            KERNAL_CLOSE .......................... A+ X+ Y+
                             OUT_STRING *
                             RESET_FILE_IO *
                         PROCESS_DISK_STATUS *
-                        KERNAL_CLOSE
+                        KERNAL_CLOSE .............................. A+ X+ Y+
                         RESET_FILE_IO *
-                        BUFFERED_OUT_INIT
-                        KERNAL_CHKIN
-                        KERNAL_CHRIN
-                        BUFFERED_OUT_BYTE
-                           BUFFERED_OUT_FLUSH
-                                KERNAL_CLRCHN
-                                KERNAL_CHKOUT
-                                KERNAL_CHKIN
+                        BUFFERED_OUT_INIT ......................... A+ X- Y-
+                        KERNAL_CHKIN .............................. A+ X+ Y+
+                        KERNAL_CHRIN .............................. A+ X+ Y-
+                        BUFFERED_OUT_BYTE ......................... A- X- Y-
+                           BUFFERED_OUT_FLUSH ..................... A+ X+ Y-
+                                KERNAL_CLRCHN ..................... A+ X+ Y-
+                                KERNAL_CHKOUT ..................... A+ X+ Y-
+                                KERNAL_CHKIN ...................... A+ X+ Y+
                                 BUFFERED_OUT_INIT *
-                        IN_BYTE
-                            KERNAL_CHRIN
-                            KERNAL_READST
-                       BINARY_TO_DECIMAL
+                        IN_BYTE ................................... A+ X- Y-
+                            KERNAL_CHRIN .......................... A+ X+ Y-
+                            KERNAL_READST ......................... A+ X- Y-
+                        BINARY_TO_DECIMAL ......................... A+ X+ Y+
                         BUFFERED_OUT_FLUSH *
-                        KERNAL_CLOSE
+                        KERNAL_CLOSE .............................. A+ X+ Y+
                         RESET_FILE_IO *
-                    CMD_RM
-                        ERROR_WRONG_NUMBER_OF_ARGUMENTS
+                    CMD_RM ........................................ A+ X+ Y+ ZP_23 ZP_24
+                        ERROR_WRONG_NUMBER_OF_ARGUMENTS *
                             OUT_STRING *
                             RESET_FILE_IO *
-                        ERROR_FILE_NAME_TOO_LONG
+                        ERROR_FILE_NAME_TOO_LONG .................. A- X+ Y+
                             OUT_STRING *
                             RESET_FILE_IO *
-                        KERNAL_SETNAM
-                        KERNAL_SETLFS
-                        KERNAL_OPEN
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
                         ERROR_DEVICE_NOT_PRESENT *
                         PROCESS_DISK_STATUS *
                         RESET_FILE_IO *
-                    CMD_MV
+                    CMD_MV ........................................ A+ X+ Y+ ZP_23 ZP_24
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
                         ERROR_FILE_NAME_TOO_LONG *
-                        KERNAL_SETNAM
-                        KERNAL_SETLFS
-                        KERNAL_OPEN
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
                         ERROR_DEVICE_NOT_PRESENT *
                         PROCESS_DISK_STATUS *
                         RESET_FILE_IO *
-                    CMD_PR
+                    CMD_PR ........................................ A+ X+ Y+ ZP_23 ZP_24
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
-                        KERNAL_SETNAM
-                        KERNAL_SETLFS
-                        KERNAL_OPEN
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
                         ERROR_DEVICE_NOT_PRESENT *
                         PROCESS_DISK_STATUS *
-                        KERNAL_CLOSE
+                        KERNAL_CLOSE .............................. A+ X+ Y+
                         RESET_FILE_IO *
                         BUFFERED_OUT_INIT *
-                        KERNAL_CHKIN
-                        KERNAL_CHRIN
+                        KERNAL_CHKIN .............................. A+ X+ Y+
+                        KERNAL_CHRIN .............................. A+ X+ Y-
                         KERNAL_READST
                         BUFFERED_OUT_BYTE *
                         BUFFERED_OUT_FLUSH *
-                        KERNAL_CLOSE
+                        KERNAL_CLOSE .............................. A+ X+ Y+
                         RESET_FILE_IO *
-                    CMD_DISK
+                    CMD_DISK ...................................... A+ X+ Y+ ZP_23 ZP_24
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
-                        KERNAL_SETLFS
-                        KERNAL_SETNAM
-                        KERNAL_OPEN
-                        KERNAL_CHKOUT
+                        KERNAL_SETLFS ............................. A- X- Y-
+                        KERNAL_SETNAM ............................. A- X- Y-
+                        KERNAL_OPEN ............................... A+ X+ Y+
+                        KERNAL_CHKOUT ............................. A+ X+ Y-
                         PROCESS_DISK_STATUS *
                         RESET_FILE_IO *
-                    CMD_WORK
-                        OUT_DEVICE_DRIVE
+                    CMD_WORK ...................................... A+ X+ Y+
+                        OUT_DEVICE_DRIVE .......................... A+ X+ Y+
                             OUT_STRING *
                             RESET_FILE_IO *
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
-                        CHANGE_DEVICE_DRIVE
-                            KERNAL_SETLFS
-                            KERNAL_SETNAM
-                            KERNAL_OPEN
-                            KERNAL_CLOSE
+                        CHANGE_DEVICE_DRIVE ....................... A+ X+ Y+
+                            KERNAL_SETLFS ......................... A- X- Y-
+                            KERNAL_SETNAM ......................... A- X- Y-
+                            KERNAL_OPEN ........................... A+ X+ Y+
+                            KERNAL_CLOSE .......................... A+ X+ Y+
                             OUT_STRING *
                         RESET_FILE_IO *
-                    CMD_SYS
+                    CMD_SYS ....................................... A+ X+ Y+
                         OUT_DEVICE_DRIVE *
                         ERROR_WRONG_NUMBER_OF_ARGUMENTS *
                         CHANGE_DEVICE_DRIVE *
@@ -166,5 +165,5 @@ ENTRYPOINT
                 LOAD_PROGRAM_IF_NOT_ALREADY_LOADED *
                     STRING_COMPARE *
                     LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK *
-                EXECUTE_PROGRAM
+                EXECUTE_PROGRAM ................................... A+ X+ Y+
                     $1800
