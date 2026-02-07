@@ -47,6 +47,37 @@ FILE_NAME_MAX_LENGTH = 16
 
 KERNAL_NNMI20 := $FE72                                      ; Kernal nnmi20 continuation of NMI handing.
 
+; Memory areas
+
+; Area 1: $0200-$0258 89 bytes
+AREA_1      := KVAR_BUF_BUFOFS
+AREA_1_LAST := KVAR_BUF_BUFOFS_LAST
+AREA_1_SIZE =  < KVAR_BUF_BUFOFS_SIZE
+
+; Area 2: $02A7-$02FF 89 bytes
+AREA_2      := KVAR_UNUSED_1
+AREA_2_LAST := KVAR_UNUSED_1_LAST
+AREA_2_SIZE =  < KVAR_UNUSED_1_SIZE
+
+; Area 3: $0334-$03FF 204 bytes
+AREA_3      := KVAR_UNUSED_2
+AREA_3_LAST := KVAR_UNUSED_3_LAST
+AREA_3_SIZE =  < AREA_3_LAST - AREA_3 + 1
+
+FILE_NAME_TEXT       := AREA_1
+FILE_NAME_TEXT_DRIVE := FILE_NAME_TEXT + 0
+FILE_NAME_TEXT_COLON := FILE_NAME_TEXT + 1
+
+DISK_STATUS_TEXT        := AREA_1
+DISK_STATUS_TEXT_CODE_0 := DISK_STATUS_TEXT + 0
+DISK_STATUS_TEXT_CODE_1 := DISK_STATUS_TEXT + 1
+
+DISK_COMMAND_TEXT := AREA_1
+
+BUFFERED_OUT_BUFFER      := AREA_2
+BUFFERED_OUT_BUFFER_LAST := AREA_2_LAST
+BUFFERED_OUT_BUFFER_SIZE =  < AREA_2_SIZE
+
 ; ARGC: Argument count
 .export ARGC                        := KERNAL_TBUFFR        ; $033C
 .export ARGC_LO                     := ARGC                 ; $033C
@@ -127,24 +158,11 @@ BINARY_TO_DECIMAL_DECIMAL_1     := $03CE
 BINARY_TO_DECIMAL_DECIMAL_2     := $03CF
 BINARY_TO_DECIMAL_DECIMAL_3     := $03D0
 
-BUFFER_FIRST                    := $03D1
-BUFFER_LAST                     := $03FF
+BUFFERED_OUT_SAVE_X             := $03D1
+BUFFERED_OUT_CURSOR             := $03D2
 
-; Memory area 2 $02A7-$02FF (89 bytes)
-AREA_2 := $02A7
-AREA_2_FIRST := AREA_2
-AREA_2_LAST := $02FF
-AREA_2_SIZE = AREA_2_LAST + 1 - AREA_2
-
-FILE_NAME_TEXT := AREA_2
-FILE_NAME_TEXT_DRIVE := AREA_2
-FILE_NAME_TEXT_COLON := AREA_2 + 1
-
-DISK_STATUS_TEXT := AREA_2
-DISK_STATUS_TEXT_CODE_0 := AREA_2
-DISK_STATUS_TEXT_CODE_1 := AREA_2 + 1
-
-DISK_COMMAND_TEXT := AREA_2
+AREA_3_AVAILABLE_FIRST := $03D3
+AREA_3_AVAILABLE_LAST  := $03FF
 
 .export SYS_DEVICE              := $17FA                    
 .export SYS_DRIVE               := $17FB
@@ -1014,36 +1032,54 @@ DISK_COMMAND_TEXT := AREA_2
     rts
 .endproc
 
-; Used in PROC_B, PROC_C, PROC_D
-L10AB:  .byte   0
-
-.proc PROC_C
-    stx BINARY_TO_DECIMAL_TMP
-    ldx L10AB
-    sta KERNAL_TBUFFR,x
-    inc L10AB
-    cmp # PETSCII_RETURN
-    beq PROC_D
-    ldx BINARY_TO_DECIMAL_TMP
+;;; summary: Initialize buffered output
+.proc BUFFERED_OUT_INIT
+    lda # 0
+    sta BUFFERED_OUT_CURSOR
     rts
 .endproc
 
-.proc PROC_D
+;;; summary: Send byte in `A` to buffered output, flushing if buffer is full.
+;;; changed: A+ X+ Y+
+;;; notes:
+;;;   Flush on PETSCII_RETURN or buffer full.
+;;;   Not flushed: A- X- Y-
+;;;   Flushed: A+ X+ Y+
+.proc BUFFERED_OUT_BYTE
+    stx BUFFERED_OUT_SAVE_X
+        ldx BUFFERED_OUT_CURSOR
+        sta BUFFERED_OUT_BUFFER,x
+        inc BUFFERED_OUT_CURSOR
+        if
+            cmp # PETSCII_RETURN
+            beq _then
+            cpx # BUFFERED_OUT_BUFFER_SIZE
+            bne _end
+        then
+            jsr BUFFERED_OUT_FLUSH
+        else_end
+    ldx BUFFERED_OUT_SAVE_X
+    rts
+.endproc
+
+;;; summary: Flush buffered output
+;;; changed: A+ X+ Y+
+.proc BUFFERED_OUT_FLUSH
     lda REDIRECT_OUTPUT_ACTIVE
     if_ne_then
         ; Redirect output active
-        jsr KERNAL_CLRCHN
+        jsr KERNAL_CLRCHN                                   ; A+ X+
         ldx # REDIRECT_OUTPUT_FA
-        jsr KERNAL_CHKOUT
+        jsr KERNAL_CHKOUT                                   ; A+ X+
     else_end
 
     from
         ldx # 0
     loop
-        cpx L10AB
+        cpx BUFFERED_OUT_CURSOR
         beq _end                                            ; break
-        lda KERNAL_TBUFFR,x
-        jsr KERNAL_CHROUT
+        lda BUFFERED_OUT_BUFFER,x
+        jsr KERNAL_CHROUT                                   ; A- X- Y-
     next
         inx
         bne _loop                                           ; bra
@@ -1052,19 +1088,12 @@ L10AB:  .byte   0
     lda REDIRECT_OUTPUT_ACTIVE
     if_ne_then
         ; Redirect output active
-        jsr KERNAL_CLRCHN
+        jsr KERNAL_CLRCHN                                   ; A+ X+
         ldx # FILE_FA
-        jsr KERNAL_CHKIN
+        jsr KERNAL_CHKIN                                    ; A+ X+ Y+
     else_end
 
-    ldx BINARY_TO_DECIMAL_TMP
-    jsr PROC_B
-    rts
-.endproc
-
-.proc PROC_B
-    lda # 0
-    sta L10AB
+    jsr BUFFERED_OUT_INIT
     rts
 .endproc
 
@@ -1297,13 +1326,13 @@ L10AB:  .byte   0
         rts
     else_end
 
-    jsr PROC_B
+    jsr BUFFERED_OUT_INIT
     ldx # FILE_FA
     jsr KERNAL_CHKIN
     jsr KERNAL_CHRIN
     jsr KERNAL_CHRIN
     lda # PETSCII_RETURN
-    jsr PROC_C
+    jsr BUFFERED_OUT_BYTE
     ; Clear serial status
     lda # KERNAL_OK                                     ; 0
     sta SAVE_KERNAL_READST
@@ -1328,7 +1357,7 @@ L10AB:  .byte   0
             lda BINARY_TO_DECIMAL_DECIMAL,x
             cmp # PETSCII_SPACE
             beq _end                                        ; break
-            jsr PROC_C
+            jsr BUFFERED_OUT_BYTE
         next
             inx
             cpx # 3
@@ -1336,20 +1365,20 @@ L10AB:  .byte   0
         end
 
         lda # PETSCII_SPACE
-        jsr PROC_C
+        jsr BUFFERED_OUT_BYTE
 
         from_loop
             jsr IN_BYTE
             bcs OUTER::_end                                 ; break OUTER
             cmp # PETSCII_NUL
             beq _end                                        ; break
-            jsr PROC_C
+            jsr BUFFERED_OUT_BYTE
         next
             jmp _loop
         end
 
         lda # PETSCII_RETURN
-        jsr PROC_C
+        jsr BUFFERED_OUT_BYTE
 
         ; Pause on SHIFT
         from_loop
@@ -1365,7 +1394,8 @@ L10AB:  .byte   0
     end
 
     lda # PETSCII_RETURN
-    jsr PROC_C
+    jsr BUFFERED_OUT_BYTE
+    jsr BUFFERED_OUT_FLUSH
     lda # FILE_FA
     jsr KERNAL_CLOSE
     jsr RESET_FILE_IO
@@ -1502,7 +1532,7 @@ L10AB:  .byte   0
     rts
 .endproc
 
-;;; summary: Delete file
+;;; summary: Remove (delete, scratch) file
 .proc CMD_RM
     lda ARGC_LO
     cmp # 2
@@ -1569,6 +1599,7 @@ L10AB:  .byte   0
     rts
 .endproc
 
+;;; summary: Move (rename) file
 .proc CMD_MV
     lda ARGC_LO
     cmp # 3
@@ -1664,6 +1695,7 @@ L10AB:  .byte   0
     rts
 .endproc
 
+;;; summary: Print (cat) file
 .proc CMD_PR
     lda ARGC_LO
     cmp # 2
@@ -1690,9 +1722,9 @@ L10AB:  .byte   0
     ldx ZP_23
     ldy ZP_24
     jsr KERNAL_SETNAM
-    lda # FILE_FA
+    lda # FILE_FA                                           ; A = FILE_FA = FILE_SA
     ldx WORK_DEVICE
-    tay
+    tay                                                     ; Y = FILE_SA
     jsr KERNAL_SETLFS
     jsr KERNAL_OPEN
     if_cs_then
@@ -1709,7 +1741,7 @@ L10AB:  .byte   0
         rts
     else_end
 
-    jsr PROC_B
+    jsr BUFFERED_OUT_INIT
     ldx # FILE_FA
     jsr KERNAL_CHKIN
 
@@ -1719,26 +1751,15 @@ L10AB:  .byte   0
         jsr KERNAL_READST
         pha
             txa
-            jsr PROC_C
+            jsr BUFFERED_OUT_BYTE
         pla
     next
         beq _loop
     end
 
-    jsr PROC_D
+    jsr BUFFERED_OUT_FLUSH
     lda # FILE_FA
     jsr KERNAL_CLOSE
-    jsr RESET_FILE_IO
-    rts
-.endproc
-
-;;; summary: Error device not present
-.proc ERROR_DEVICE_NOT_PRESENT
-    lda # FILE_FA
-    jsr KERNAL_CLOSE
-    ldx # <RESOURCE_STRING_DEVICE_NOT_PRESENT
-    ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
-    jsr OUT_STRING
     jsr RESET_FILE_IO
     rts
 .endproc
@@ -1802,15 +1823,6 @@ L10AB:  .byte   0
 
     jsr RESET_FILE_IO
 
-    rts
-.endproc
-
-;;; summary: Error wrong number of arguments
-.proc ERROR_WRONG_NUMBER_OF_ARGUMENTS
-    ldx # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-    ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-    jsr OUT_STRING
-    jsr RESET_FILE_IO
     rts
 .endproc
 
@@ -1965,7 +1977,27 @@ L10AB:  .byte   0
     rts
 .endproc
 
-;;; summary: File name too long
+;;; summary: Error: Device not present
+.proc ERROR_DEVICE_NOT_PRESENT
+    lda # FILE_FA
+    jsr KERNAL_CLOSE
+    ldx # <RESOURCE_STRING_DEVICE_NOT_PRESENT
+    ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
+    rts
+.endproc
+
+;;; summary: Error: Wrong number of arguments
+.proc ERROR_WRONG_NUMBER_OF_ARGUMENTS
+    ldx # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+    ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+    jsr OUT_STRING
+    jsr RESET_FILE_IO
+    rts
+.endproc
+
+;;; summary: Error: File name too long
 .proc ERROR_FILE_NAME_TOO_LOMG
     ldx # <RESOURCE_STRING_FILE_NAME_TOO_LOMG
     ldy # >RESOURCE_STRING_FILE_NAME_TOO_LOMG
