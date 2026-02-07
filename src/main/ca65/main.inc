@@ -44,3 +44,6 @@ ARGV_SIZE = ARGC_MAX
 PROGRAM_ENTRYPOINT = $1800                                  ; Entry point of loaded program
 
 FILE_NAME_MAX_LENGTH = 16
+
+; summary: Maximum length for command name. Is file name max length minus 3 for ".sh" is 13.
+COMMAND_NAME_MAX_LENGTH = FILE_NAME_MAX_LENGTH - 3
