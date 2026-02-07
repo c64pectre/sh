@@ -16,53 +16,37 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
-DEFAULT_DEVICE = 8
-DEFAULT_DRIVE = 0
-
-DISK_COMMAND_FA = 15
-DISK_COMMAND_SA = 15
-
-REDIRECT_INPUT_FA = 1
-REDIRECT_INPUT_SA = 2
-
-REDIRECT_OUTPUT_FA = 2
-REDIRECT_OUTPUT_FILE_SA = 3
-REDIRECT_OUTPUT_PRINTER_DA = 4
-REDIRECT_OUTPUT_PRINTER_SA = 7
-
-FILE_FA = 4
-FILE_SA = 4
-
-FILE_NAME_TEXT_COLON_OFFSET_NAME = 2
-
-COMMAND_NAME_SIZE = 5
-
-ARGC_MAX = 10
-
-ARGV_SIZE = ARGC_MAX
-
-PROGRAM_ENTRYPOINT = $1800                                  ; Entry point of loaded program
-
-FILE_NAME_MAX_LENGTH = 16
+;region Kernal internal
 
 KERNAL_NNMI20 := $FE72                                      ; Kernal nnmi20 continuation of NMI handing.
 
-; Memory areas
+;endregion
+
+;region Memory areas
 
 ; Area 1: $0200-$0258 89 bytes
 AREA_1      := KVAR_BUF_BUFOFS
 AREA_1_LAST := KVAR_BUF_BUFOFS_LAST
-AREA_1_SIZE =  < KVAR_BUF_BUFOFS_SIZE
+AREA_1_SIZE =  KVAR_BUF_BUFOFS_SIZE
 
 ; Area 2: $02A7-$02FF 89 bytes
 AREA_2      := KVAR_UNUSED_1
 AREA_2_LAST := KVAR_UNUSED_1_LAST
-AREA_2_SIZE =  < KVAR_UNUSED_1_SIZE
+AREA_2_SIZE =  KVAR_UNUSED_1_SIZE
 
-; Area 3: $0334-$03FF 204 bytes
+; Area 3: $0334-$033B 8 bytes
 AREA_3      := KVAR_UNUSED_2
-AREA_3_LAST := KVAR_UNUSED_3_LAST
-AREA_3_SIZE =  < AREA_3_LAST - AREA_3 + 1
+AREA_3_LAST := KVAR_UNUSED_2_LAST
+AREA_3_SIZE =  KVAR_UNUSED_2_SIZE
+
+; Area 4: $033C-$03FF 196 bytes
+AREA_4      := KERNAL_TBUFFR
+AREA_4_LAST := KVAR_UNUSED_3_LAST
+AREA_4_SIZE =  < AREA_4_LAST - AREA_4 + 1
+
+;endregion
+
+;region Memory layout
 
 FILE_NAME_TEXT       := AREA_1
 FILE_NAME_TEXT_DRIVE := FILE_NAME_TEXT + 0
@@ -76,114 +60,120 @@ DISK_COMMAND_TEXT := AREA_1
 
 BUFFERED_OUT_BUFFER      := AREA_2
 BUFFERED_OUT_BUFFER_LAST := AREA_2_LAST
-BUFFERED_OUT_BUFFER_SIZE =  < AREA_2_SIZE
+BUFFERED_OUT_BUFFER_SIZE =  AREA_2_SIZE
+
+SYS_DEVICE             := AREA_3 + 0 ; $0334 ; $17FA
+SYS_DRIVE              := AREA_3 + 1 ; $0335 ; $17FB
+WORK_DEVICE            := AREA_3 + 2 ; $0336 ; $17FC
+WORK_DRIVE             := AREA_3 + 3 ; $0337 ; $17FD
+REDIRECT_INPUT_ACTIVE  := AREA_3 + 4 ; $0338 ; $17FE ; 0 = no , 1 = yes
+REDIRECT_OUTPUT_ACTIVE := AREA_3 + 5 ; $033A ; $17FF ; 0 = no , 1 = yes
+AREA_3_UNUSED_6        := AREA_3 + 6 ; $0339
+AREA_3_UNUSED_7        := AREA_3 + 7 ; $033B
 
 ; ARGC: Argument count
-.export ARGC                        := KERNAL_TBUFFR        ; $033C
-.export ARGC_LO                     := ARGC                 ; $033C
-.export ARGC_HI                     := ARGC + 1             ; $033D
+ARGC    := AREA_4 + 0 ; $033C
+ARGC_LO := ARGC       ; $033C
+ARGC_HI := ARGC + 1   ; $033D
 
 ; PARGV: Pointer to argv: argument value array: array of pointer to string
-.export PARGV                       := KERNAL_TBUFFR + 2    ; $033E
-.export PARGV_LO                    := PARGV                ; $033E
-.export PARGV_HI                    := PARGV + 1            ; $033F
+PARGV    := AREA_4 + 2 ; $033E
+PARGV_LO := PARGV      ; $033E
+PARGV_HI := PARGV + 1  ; $033F
 
-.export NEW_SYS_DEVICE              := $17FA                ; $0340    
-.export NEW_SYS_DRIVE               := $17FB                ; $0341
-.export NEW_WORK_DEVICE             := $17FC                ; $0342
-.export NEW_WORK_DRIVE              := $17FD                ; $0343
-.export NEW_REDIRECT_INPUT_ACTIVE   := $17FE                ; $0344 0=no , 1=yes
-.export NEW_REDIRECT_OUTPUT_ACTIVE  := $17FF                ; $0345 0=no , 1=yes
+ARGV      := AREA_4 + 4 ; $0340
+ARGV_0    := ARGV + 0   ; $0340
+ARGV_0_LO := ARGV_0     ; $0340
+ARGV_0_HI := ARGV_0 + 1 ; $0341
+ARGV_1    := ARGV + 2   ; $0342
+ARGV_1_LO := ARGV_1     ; $0342
+ARGV_1_HI := ARGV_1 + 1 ; $0343
+ARGV_2    := ARGV + 4   ; $0344
+ARGV_2_LO := ARGV_2     ; $0344
+ARGV_2_HI := ARGV_2 + 1 ; $0345
+ARGV_3    := ARGV + 6   ; $0346
+ARGV_3_LO := ARGV_3     ; $0346
+ARGV_3_HI := ARGV_3 + 1 ; $0347
+ARGV_4    := ARGV + 8   ; $0348
+ARGV_4_LO := ARGV_4     ; $0348
+ARGV_4_HI := ARGV_4 + 1 ; $0349
+ARGV_5    := ARGV + 10  ; $034A
+ARGV_5_LO := ARGV_5     ; $034A
+ARGV_5_HI := ARGV_5 + 1 ; $034B
+ARGV_6    := ARGV + 12  ; $034C
+ARGV_6_LO := ARGV_6     ; $034C
+ARGV_6_HI := ARGV_6 + 1 ; $034D
+ARGV_7    := ARGV + 14  ; $034E
+ARGV_7_LO := ARGV_7     ; $034E
+ARGV_7_HI := ARGV_7 + 1 ; $034F
+ARGV_8    := ARGV + 16  ; $0350
+ARGV_8_LO := ARGV_8     ; $0350
+ARGV_8_HI := ARGV_8 + 1 ; $0351
+ARGV_9    := ARGV + 18  ; $0352
+ARGV_9_LO := ARGV_9     ; $0352
+ARGV_9_HI := ARGV_9 + 1 ; $0353
 
-ARGV                            := $0346
-ARGV_0                          := ARGV + 0             ; $0346
-ARGV_0_LO                       := ARGV_0               ; $0346
-ARGV_0_HI                       := ARGV_0 + 1           ; $0347
-ARGV_1                          := ARGV + 2             ; $0348
-ARGV_1_LO                       := ARGV_1               ; $0348
-ARGV_1_HI                       := ARGV_1 + 1           ; $0349
-ARGV_2                          := ARGV + 4             ; $034A
-ARGV_2_LO                       := ARGV_2               ; $034A
-ARGV_2_HI                       := ARGV_2 + 1           ; $034B
-ARGV_3                          := ARGV + 6             ; $034C
-ARGV_3_LO                       := ARGV_3               ; $034C
-ARGV_3_HI                       := ARGV_3 + 1           ; $034D
-ARGV_4                          := ARGV + 8             ; $034E
-ARGV_4_LO                       := ARGV_4               ; $034E
-ARGV_4_HI                       := ARGV_4 + 1           ; $034F
-ARGV_5                          := ARGV + 10            ; $0350
-ARGV_5_LO                       := ARGV_5               ; $0350
-ARGV_5_HI                       := ARGV_5 + 1           ; $0351
-ARGV_6                          := ARGV + 12            ; $0352
-ARGV_6_LO                       := ARGV_6               ; $0352
-ARGV_6_HI                       := ARGV_6 + 1           ; $0353
-ARGV_7                          := ARGV + 14            ; $0354
-ARGV_7_LO                       := ARGV_7               ; $0354
-ARGV_7_HI                       := ARGV_7 + 1           ; $0355
-ARGV_8                          := ARGV + 16            ; $0356
-ARGV_8_LO                       := ARGV_8               ; $0356
-ARGV_8_HI                       := ARGV_8 + 1           ; $0357
-ARGV_9                          := ARGV + 18            ; $0358
-ARGV_9_LO                       := ARGV_9               ; $0358
-ARGV_9_HI                       := ARGV_9 + 1           ; $0359
+;;; summary: Input text $0354-03A5 (82 bytes)
+INPUT_TEXT                      := $0354
+INPUT_TEXT_SIZE                 =  82
+INPUT_TEXT_LAST                 := INPUT_TEXT + INPUT_TEXT_SIZE
 
-;;; summary: Input text $035A-03AB (82 bytes)
-INPUT_TEXT                      := $035A
-INPUT_TEXT_LAST                 := $03AB
+;;; summary: Name of loaded program, if any (then LOADED_PROGRAM_NAME[0] == 0) $03A6-$03B9 (20 bytes)
+LOADED_PROGRAM_NAME             := $03A6
+LOADED_PROGRAM_NAME_SIZE        = 20
+LOADED_PROGRAM_NAME_LAST        := LOADED_PROGRAM_NAME + LOADED_PROGRAM_NAME_SIZE
+; Save colors
+SAVE_KVAR_COLOR                 := $03BA
+SAVE_VIC_EC                     := $03BB
+SAVE_VIC_B0C                    := $03BC
+; NMI
+SAVE_KERNAL_NMINV_LO            := $03BD
+SAVE_KERNAL_NMINV_HI            := $03BE
+SAVE_S                          := $03BF
+NMI_ENTRY_COUNT                 := $03C0
+; LOAD_PROGRAM
+LOAD_PROGRAM_SAVE_X_DEVICE      := $03C1
+; CMD_DIR, IN_BYTE
+SAVE_KERNAL_READST              := $03C2
+; BINARY_TO_DECIMAL
+BINARY_TO_DECIMAL_BINARY_LO     := $03C3
+BINARY_TO_DECIMAL_BINARY_HI     := $03C4
+BINARY_TO_DECIMAL_TMP           := $03C5
+BINARY_TO_DECIMAL_DECIMAL_DIGIT := $03C6
+BINARY_TO_DECIMAL_DECIMAL       := $03C7
+BINARY_TO_DECIMAL_DECIMAL_0     := $03C8
+BINARY_TO_DECIMAL_DECIMAL_1     := $03C9
+BINARY_TO_DECIMAL_DECIMAL_2     := $03CA
+BINARY_TO_DECIMAL_DECIMAL_3     := $03CB
+; BUFFERED_OUT
+BUFFERED_OUT_SAVE_X             := $03CC
+BUFFERED_OUT_CURSOR             := $03CD
 
-;;; summary: Name of loaded program, if any (then LOADED_PROGRAM_NAME[0] == 0) (20 bytes)
-LOADED_PROGRAM_NAME             := $03AC
-LOADED_PROGRAM_NAME_LAST        := $03BF
-
-SAVE_KVAR_COLOR                 := $03C0
-SAVE_VIC_EC                     := $03C1
-SAVE_VIC_B0C                    := $03C2
-
-SAVE_KERNAL_NMINV_LO            := $03C3
-SAVE_KERNAL_NMINV_HI            := $03C4
-SAVE_S                          := $03C5
-NMI_ENTRY_COUNT                 := $03C6
-
-LOAD_PROGRAM_SAVE_X_DEVICE      := $03C7
-
-SAVE_KERNAL_READST              := $03C8
-
-BINARY_TO_DECIMAL_BINARY_LO     := $03C9
-BINARY_TO_DECIMAL_BINARY_HI     := $03CA
-BINARY_TO_DECIMAL_TMP           := $03CB
-BINARY_TO_DECIMAL_DECIMAL_DIGIT := $03CC
-BINARY_TO_DECIMAL_DECIMAL       := $03CD
-BINARY_TO_DECIMAL_DECIMAL_0     := $03CD
-BINARY_TO_DECIMAL_DECIMAL_1     := $03CE
-BINARY_TO_DECIMAL_DECIMAL_2     := $03CF
-BINARY_TO_DECIMAL_DECIMAL_3     := $03D0
-
-BUFFERED_OUT_SAVE_X             := $03D1
-BUFFERED_OUT_CURSOR             := $03D2
-
-AREA_3_AVAILABLE_FIRST := $03D3
+; 32 bytes available
+AREA_3_AVAILABLE_FIRST := $03CE
 AREA_3_AVAILABLE_LAST  := $03FF
 
-.export SYS_DEVICE              := $17FA                    
-.export SYS_DRIVE               := $17FB
-.export WORK_DEVICE             := $17FC
-.export WORK_DRIVE              := $17FD
-.export REDIRECT_INPUT_ACTIVE   := $17FE                    ; 0 = no , 1 = yes
-.export REDIRECT_OUTPUT_ACTIVE  := $17FF                    ; 0 = no , 1 = yes
+ZP_23 := < $23  ; Was ZP_2A
+ZP_24 := < $24  ; Was ZP_2B
 
-.exportzp ZP_23 := $23  ; Was ZP_2A
-.exportzp ZP_24 := $24  ; Was ZP_2B
+ZP_25 := < $25  ; Was ZP_57
+ZP_26 := < $26  ; Was ZP_58
 
-.exportzp ZP_25 := $25  ; Was ZP_57
-.exportzp ZP_26 := $26  ; Was ZP_58
+ZP_27 := < $27  ; Was ZP_59
 
-.exportzp ZP_27 := $27  ; Was ZP_59
+;endregion
+
+;region Main
 
 .proc main
     jsr INITIALIZE
     jsr RUN
     rts
 .endproc
+
+;endregion
+
+;region Implementation
 
 .proc INITIALIZE
     ; Save NMI handler
@@ -295,125 +285,6 @@ AREA_3_AVAILABLE_LAST  := $03FF
     sta INPUT_TEXT,y
 
     rts
-.endproc
-
-;;; summary: Put string
-;;; in:
-;;;   X#Y: Nul-terminated string
-;;; changed:
-;;;   AX
-.proc OUT_STRING
-    from
-        stx AL
-        sty AH
-        ldy # 0
-    loop
-        lda [AX],y
-        beq _end                                            ; break
-        jsr KERNAL_CHROUT                                   ; A- X- Y- C0
-    next
-        iny
-        bne _loop
-    end
-
-    rts
-.endproc
-
-;;; summary: My NMI handler.
-;;; notes:
-;;;   We need to catch <RUN STOP> + <RESTORE> else we go back to BASIC
-;;;   Bug: Pressing <RUN STOP> + <RESTORE> during load is handled incorrectly.
-.proc MY_NMI_HANDLER
-    ; check I = 1
-
-    ; Check for and prevent re-entry
-    pha
-    lda NMI_ENTRY_COUNT
-    if_ne_then
-        ; Already in an NMI call (not sure how this could happen, maybe on bouncing RESTORE key)
-        pla
-        rti
-    else_end
-
-    ; First entry
-    txa
-    pha
-        tya
-        pha
-            ; Disable all CIA-2 interrupts (why?)
-            lda # $7F
-            sta CIA_2_ICR
-            ; Process any pending CIA-2 interrupt.
-            ; NMI occured?
-            ldy CIA_2_ICR
-            if_mi_then
-                ; NMI occured yes
-                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
-            else_end
-
-            ; NMI occured no
-            ; RESTORE key was pressed
-            ; STOP key pressed? Z=1 (eq): yes, Z=0 (ne): no
-            jsr KERNAL_STOP
-            if_ne_then
-                ; STOP key was not pressed
-                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
-            else_end
-
-            ; STOP key was pressed
-            inc NMI_ENTRY_COUNT                          ; Prevent re-entry
-
-            ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
-            lda # CPU_PORT_DATA_DEFAULT
-            sta CPU_PORT_DATA
-
-            ; Set text screen base to default (in case it got changed).
-            lda # >SCREEN_TEXT_RAM_BASE
-            sta KVAR_HIBASE
-
-            ; Save and restore colors because called Kernal routine changes them.
-            lda KVAR_COLOR
-            pha
-                lda VIC_EC
-                pha
-                    lda VIC_B0C
-                    pha
-                        jsr KERNAL_IOINIT
-                        jsr KERNAL_CINT
-                    pla
-                    sta VIC_B0C
-                pla
-                sta VIC_EC
-            pla
-            sta KVAR_COLOR
-
-            ; Restore stack pointer (stack might have been messed up).
-            ldx SAVE_S
-            txs
-
-            ; Enable interrupts so we can do file I/O.
-            cli
-
-            ; Close all files 14..1. Why not call KERNAL_CLALL?
-            from
-                ldx # 15
-            loop
-                txa
-                pha
-                    jsr KERNAL_CLOSE                        ; A+ X+ Y+ C+ N+ V? Z+
-                pla
-                tax
-            next
-                dex
-                bne _loop
-            end
-
-            lda     # PETSCII_RETURN
-            jsr     KERNAL_CHROUT
-
-            dec     NMI_ENTRY_COUNT                          ; Allow entry
-
-            jmp     RUN                                     ; Resume
 .endproc
 
 ;;; summary: Process input text
@@ -559,6 +430,138 @@ AREA_3_AVAILABLE_LAST  := $03FF
     rts
 .endproc
 
+.proc TRY_BUILT_IN_COMMAND
+    from
+        lda # <COMMAND_NAME_TABLE
+        sta ZP_25
+        lda # >COMMAND_NAME_TABLE
+        sta ZP_26
+        lda # 0
+        sta ZP_27
+    loop
+        ldy # 0
+        lda [ZP_25],y
+        if_eq_then
+            rts
+        else_end
+
+        jsr STRING_COMPARE
+        beq _end                                            ; break
+    next
+        clc
+        lda ZP_25
+        adc # COMMAND_NAME_SIZE
+        sta ZP_25
+        if_cs_then
+            inc ZP_26
+        else_end
+
+        inc ZP_27
+        bne _loop                                           ; bra
+    end
+
+    ; Take out return address so we return from PROCESS_INPUT_TEXT (yuk!)
+    pla
+    pla
+
+    ldx ZP_27
+    if_eq_then
+        ; Bye
+        jsr RESET_FILE_IO
+        lda SAVE_KERNAL_NMINV_LO
+        sta KERNAL_NMINV_LO
+        lda SAVE_KERNAL_NMINV_HI
+        sta KERNAL_NMINV_HI
+        ldx SAVE_S
+        txs
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; Load
+        lda ARGC_LO
+        cmp # 2
+        if_ne_then
+            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            rts
+        else_end
+
+        lda ARGV_1_LO
+        sta ZP_23
+        lda ARGV_1_HI
+        sta ZP_24
+        jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+        jsr RESET_FILE_IO
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; ls
+        ldx SYS_DEVICE
+        ldy SYS_DRIVE
+        jsr CMD_DIR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; l
+        ldx WORK_DEVICE
+        ldy WORK_DRIVE
+        jsr CMD_DIR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; rm
+        jsr CMD_RM
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; mv
+        jsr CMD_MV
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; pr
+        jsr CMD_PR
+        rts
+    else_end
+
+    dex
+    if_eq_then
+        ; disk
+        jsr CMD_DISK
+        rts
+    else_end
+    
+    dex
+    if_eq_then
+        ; work
+        jsr CMD_WORK
+        rts
+    else_end
+    
+    dex
+    if_eq_then
+        ; sys
+        jsr CMD_SYS
+        rts
+    else_end
+
+    jsr STRING_COMPARE                                ; Why?
+
+    rts
+    
+.endproc
+
 ;;; summary: Load program with name from `LOADED_PROGRAM_NAME`, if not already done so.
 ;;; in:
 ;;;   ZP_23#ZP_24: Name of program to load.
@@ -569,7 +572,7 @@ AREA_3_AVAILABLE_LAST  := $03FF
     sta ZP_25
     lda # >LOADED_PROGRAM_NAME
     sta ZP_26
-    jsr STRING_COMPARE_23_25
+    jsr STRING_COMPARE
     bne LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
     clc                                                     ; OK
     rts
@@ -1032,226 +1035,7 @@ AREA_3_AVAILABLE_LAST  := $03FF
     rts
 .endproc
 
-;;; summary: Initialize buffered output
-.proc BUFFERED_OUT_INIT
-    lda # 0
-    sta BUFFERED_OUT_CURSOR
-    rts
-.endproc
-
-;;; summary: Send byte in `A` to buffered output, flushing if buffer is full.
-;;; changed: A+ X+ Y+
-;;; notes:
-;;;   Flush on PETSCII_RETURN or buffer full.
-;;;   Not flushed: A- X- Y-
-;;;   Flushed: A+ X+ Y+
-.proc BUFFERED_OUT_BYTE
-    stx BUFFERED_OUT_SAVE_X
-        ldx BUFFERED_OUT_CURSOR
-        sta BUFFERED_OUT_BUFFER,x
-        inc BUFFERED_OUT_CURSOR
-        if
-            cmp # PETSCII_RETURN
-            beq _then
-            cpx # BUFFERED_OUT_BUFFER_SIZE
-            bne _end
-        then
-            jsr BUFFERED_OUT_FLUSH
-        else_end
-    ldx BUFFERED_OUT_SAVE_X
-    rts
-.endproc
-
-;;; summary: Flush buffered output
-;;; changed: A+ X+ Y+
-.proc BUFFERED_OUT_FLUSH
-    lda REDIRECT_OUTPUT_ACTIVE
-    if_ne_then
-        ; Redirect output active
-        jsr KERNAL_CLRCHN                                   ; A+ X+
-        ldx # REDIRECT_OUTPUT_FA
-        jsr KERNAL_CHKOUT                                   ; A+ X+
-    else_end
-
-    from
-        ldx # 0
-    loop
-        cpx BUFFERED_OUT_CURSOR
-        beq _end                                            ; break
-        lda BUFFERED_OUT_BUFFER,x
-        jsr KERNAL_CHROUT                                   ; A- X- Y-
-    next
-        inx
-        bne _loop                                           ; bra
-    end
-
-    lda REDIRECT_OUTPUT_ACTIVE
-    if_ne_then
-        ; Redirect output active
-        jsr KERNAL_CLRCHN                                   ; A+ X+
-        ldx # FILE_FA
-        jsr KERNAL_CHKIN                                    ; A+ X+ Y+
-    else_end
-
-    jsr BUFFERED_OUT_INIT
-    rts
-.endproc
-
-.proc TRY_BUILT_IN_COMMAND
-    from
-        lda # <COMMAND_NAME_TABLE
-        sta ZP_25
-        lda # >COMMAND_NAME_TABLE
-        sta ZP_26
-        lda # 0
-        sta ZP_27
-    loop
-        ldy # 0
-        lda [ZP_25],y
-        if_eq_then
-            rts
-        else_end
-
-        jsr STRING_COMPARE_23_25
-        beq _end                                            ; break
-    next
-        clc
-        lda ZP_25
-        adc # COMMAND_NAME_SIZE
-        sta ZP_25
-        if_cs_then
-            inc ZP_26
-        else_end
-
-        inc ZP_27
-        bne _loop                                           ; bra
-    end
-
-    ; Take out return address so we return from PROCESS_INPUT_TEXT (yuk!)
-    pla
-    pla
-
-    ldx ZP_27
-    if_eq_then
-        ; Bye
-        jsr RESET_FILE_IO
-        lda SAVE_KERNAL_NMINV_LO
-        sta KERNAL_NMINV_LO
-        lda SAVE_KERNAL_NMINV_HI
-        sta KERNAL_NMINV_HI
-        ldx SAVE_S
-        txs
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; Load
-        lda ARGC_LO
-        cmp # 2
-        if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
-            rts
-        else_end
-
-        lda ARGV_1_LO
-        sta ZP_23
-        lda ARGV_1_HI
-        sta ZP_24
-        jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-        jsr RESET_FILE_IO
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; ls
-        ldx SYS_DEVICE
-        ldy SYS_DRIVE
-        jsr CMD_DIR
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; l
-        ldx WORK_DEVICE
-        ldy WORK_DRIVE
-        jsr CMD_DIR
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; rm
-        jsr CMD_RM
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; mv
-        jsr CMD_MV
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; pr
-        jsr CMD_PR
-        rts
-    else_end
-
-    dex
-    if_eq_then
-        ; disk
-        jsr CMD_DISK
-        rts
-    else_end
-    
-    dex
-    if_eq_then
-        ; work
-        jsr CMD_WORK
-        rts
-    else_end
-    
-    dex
-    if_eq_then
-        ; sys
-        jsr CMD_SYS
-        rts
-    else_end
-
-    jsr STRING_COMPARE_23_25                                ; Why?
-
-    rts
-    
-.endproc
-
-;;; summary: Compare non-empty (!) nul-terminated strings `ZP_23` and `ZP_25`
-;;; in:
-;;;   ZP_23: Left string
-;;;   ZP_25: Right string
-;;; out:
-;;;   Z: Is equal? 0 = no 1=yes
-.proc STRING_COMPARE_23_25
-    from
-        ldy # 0
-    loop
-        lda [ZP_23],y
-        cmp [ZP_25],y
-        if_ne_then
-            rts
-        else_end
-    next
-        iny
-        cmp # PETSCII_NUL
-        bne _loop
-    end
-
-    rts
-.endproc
+;region Commands
 
 ;;; summary: Command: directory listing of work or system disk
 ;;; in:
@@ -1399,93 +1183,6 @@ AREA_3_AVAILABLE_LAST  := $03FF
     lda # FILE_FA
     jsr KERNAL_CLOSE
     jsr RESET_FILE_IO
-    rts
-.endproc
-
-;;; summary: Unsigned binary X#Y to decimal (max 9999)
-.proc BINARY_TO_DECIMAL
-    stx BINARY_TO_DECIMAL_BINARY_LO
-    sty BINARY_TO_DECIMAL_BINARY_HI
-
-    from
-        ldx # 3
-        lda # PETSCII_SPACE
-    loop
-        sta BINARY_TO_DECIMAL_DECIMAL,x
-    next
-        dex
-        bpl _loop
-    end
-
-    from OUTER
-        ldx # 0
-        ldy # 3
-    loop                                                    ; L12C8:
-
-        from INNER
-            lda # 0
-            sta BINARY_TO_DECIMAL_DECIMAL_DIGIT
-        loop
-            sec
-            lda BINARY_TO_DECIMAL_BINARY_LO
-            sbc TABLE_BINARY_TO_DECIMAL_LO,y
-            sta BINARY_TO_DECIMAL_TMP
-            lda BINARY_TO_DECIMAL_BINARY_HI
-            sbc TABLE_BINARY_TO_DECIMAL_HI,y
-            bcc _end                                        ; break
-            sta BINARY_TO_DECIMAL_BINARY_HI
-            lda BINARY_TO_DECIMAL_TMP
-            sta BINARY_TO_DECIMAL_BINARY_LO
-        next
-            inc BINARY_TO_DECIMAL_DECIMAL_DIGIT
-            bne _loop                                       ; bra
-        end
-
-        if
-            lda BINARY_TO_DECIMAL_DECIMAL_DIGIT
-            bne _then
-            cpx # 0
-            beq _end
-        then
-            clc
-            adc # PETSCII_DIGIT_ZERO
-            sta BINARY_TO_DECIMAL_DECIMAL,x
-            inx
-        end
-
-    next
-        dey
-        bpl _loop                                           ; L12C8
-    end
-
-    txa
-    if_eq_then
-        lda # PETSCII_DIGIT_ZERO
-        sta BINARY_TO_DECIMAL_DECIMAL
-    else_end
-
-    rts
-.endproc
-
-;;; summary: Read byte, checking status
-;;; out:
-;;;   A: Byte read, if OK
-;;;   C: 0=OK 1=FAIL
-;;;   SAVE_KERNAL_READST: Last status
-.proc IN_BYTE
-    lda SAVE_KERNAL_READST
-    cmp # KERNAL_OK
-    if_ne_then
-        sec                                                 ; FAIL
-        rts
-    else_end
-
-    jsr KERNAL_CHRIN
-    pha
-        jsr KERNAL_READST
-        sta SAVE_KERNAL_READST
-    pla
-    clc                                                     ; OK
     rts
 .endproc
 
@@ -1826,6 +1523,143 @@ AREA_3_AVAILABLE_LAST  := $03FF
     rts
 .endproc
 
+;endregion
+
+;region Helpers
+
+;;; summary: Put string
+;;; in:
+;;;   X#Y: Nul-terminated string
+;;; changed:
+;;;   AX
+.proc OUT_STRING
+    from
+        stx AL
+        sty AH
+        ldy # 0
+    loop
+        lda [AX],y
+        beq _end                                            ; break
+        jsr KERNAL_CHROUT                                   ; A- X- Y- C0
+    next
+        iny
+        bne _loop
+    end
+
+    rts
+.endproc
+
+;;; summary: Compare non-empty (!) nul-terminated strings
+;;; in:
+;;;   ZP_23: Left string
+;;;   ZP_25: Right string
+;;; out:
+;;;   Z: Is equal? 0 = no 1=yes
+.proc STRING_COMPARE
+    from
+        ldy # 0
+    loop
+        lda [ZP_23],y
+        cmp [ZP_25],y
+        if_ne_then
+            rts
+        else_end
+    next
+        iny
+        cmp # PETSCII_NUL
+        bne _loop
+    end
+
+    rts
+.endproc
+
+;;; summary: Unsigned binary X#Y to decimal (max 9999)
+.proc BINARY_TO_DECIMAL
+    stx BINARY_TO_DECIMAL_BINARY_LO
+    sty BINARY_TO_DECIMAL_BINARY_HI
+
+    from
+        ldx # 3
+        lda # PETSCII_SPACE
+    loop
+        sta BINARY_TO_DECIMAL_DECIMAL,x
+    next
+        dex
+        bpl _loop
+    end
+
+    from OUTER
+        ldx # 0
+        ldy # 3
+    loop
+
+        from INNER
+            lda # 0
+            sta BINARY_TO_DECIMAL_DECIMAL_DIGIT
+        loop
+            sec
+            lda BINARY_TO_DECIMAL_BINARY_LO
+            sbc TABLE_BINARY_TO_DECIMAL_LO,y
+            sta BINARY_TO_DECIMAL_TMP
+            lda BINARY_TO_DECIMAL_BINARY_HI
+            sbc TABLE_BINARY_TO_DECIMAL_HI,y
+            bcc _end                                        ; break
+            sta BINARY_TO_DECIMAL_BINARY_HI
+            lda BINARY_TO_DECIMAL_TMP
+            sta BINARY_TO_DECIMAL_BINARY_LO
+        next
+            inc BINARY_TO_DECIMAL_DECIMAL_DIGIT
+            bne _loop                                       ; bra
+        end
+
+        if
+            lda BINARY_TO_DECIMAL_DECIMAL_DIGIT
+            bne _then
+            cpx # 0
+            beq _end
+        then
+            clc
+            adc # PETSCII_DIGIT_ZERO
+            sta BINARY_TO_DECIMAL_DECIMAL,x
+            inx
+        end
+
+    next
+        dey
+        bpl _loop
+    end
+
+    txa
+    if_eq_then
+        lda # PETSCII_DIGIT_ZERO
+        sta BINARY_TO_DECIMAL_DECIMAL
+    else_end
+
+    rts
+.endproc
+
+;;; summary: Read byte, checking status
+;;; out:
+;;;   A: Byte read, if OK
+;;;   C: 0=OK 1=FAIL
+;;;   SAVE_KERNAL_READST: Last status
+.proc IN_BYTE
+    lda SAVE_KERNAL_READST
+    cmp # KERNAL_OK
+    if_ne_then
+        sec                                                 ; FAIL
+        rts
+    else_end
+
+    jsr KERNAL_CHRIN
+    pha
+        jsr KERNAL_READST
+        sta SAVE_KERNAL_READST
+    pla
+    clc                                                     ; OK
+    rts
+.endproc
+
 ;;; summary: Print device number in `X` (could be 8-30, so need 1 or 2 positions) and drive number in `Y' (0 or 1), and reset file I/O.
 ;;; in:
 ;;;   X: Device
@@ -1977,6 +1811,10 @@ AREA_3_AVAILABLE_LAST  := $03FF
     rts
 .endproc
 
+;endregion
+
+;region Errors
+
 ;;; summary: Error: Device not present
 .proc ERROR_DEVICE_NOT_PRESENT
     lda # FILE_FA
@@ -2005,3 +1843,175 @@ AREA_3_AVAILABLE_LAST  := $03FF
     jsr RESET_FILE_IO
     rts
 .endproc
+
+;endregion
+
+;region Buffered output
+
+;;; summary: Initialize buffered output
+.proc BUFFERED_OUT_INIT
+    lda # 0
+    sta BUFFERED_OUT_CURSOR
+    rts
+.endproc
+
+;;; summary: Send byte in `A` to buffered output, flushing if buffer is full.
+;;; changed: A+ X+ Y+
+;;; notes:
+;;;   Flush on PETSCII_RETURN or buffer full.
+;;;   Not flushed: A- X- Y-
+;;;   Flushed: A+ X+ Y+
+.proc BUFFERED_OUT_BYTE
+    stx BUFFERED_OUT_SAVE_X
+        ldx BUFFERED_OUT_CURSOR
+        sta BUFFERED_OUT_BUFFER,x
+        inc BUFFERED_OUT_CURSOR
+        if
+            cmp # PETSCII_RETURN
+            beq _then
+            cpx # BUFFERED_OUT_BUFFER_SIZE
+            bne _end
+        then
+            jsr BUFFERED_OUT_FLUSH
+        else_end
+    ldx BUFFERED_OUT_SAVE_X
+    rts
+.endproc
+
+;;; summary: Flush buffered output
+;;; changed: A+ X+ Y+
+.proc BUFFERED_OUT_FLUSH
+    lda REDIRECT_OUTPUT_ACTIVE
+    if_ne_then
+        ; Redirect output active
+        jsr KERNAL_CLRCHN                                   ; A+ X+
+        ldx # REDIRECT_OUTPUT_FA
+        jsr KERNAL_CHKOUT                                   ; A+ X+
+    else_end
+
+    from
+        ldx # 0
+    loop
+        cpx BUFFERED_OUT_CURSOR
+        beq _end                                            ; break
+        lda BUFFERED_OUT_BUFFER,x
+        jsr KERNAL_CHROUT                                   ; A- X- Y-
+    next
+        inx
+        bne _loop                                           ; bra
+    end
+
+    lda REDIRECT_OUTPUT_ACTIVE
+    if_ne_then
+        ; Redirect output active
+        jsr KERNAL_CLRCHN                                   ; A+ X+
+        ldx # FILE_FA
+        jsr KERNAL_CHKIN                                    ; A+ X+ Y+
+    else_end
+
+    jsr BUFFERED_OUT_INIT
+    rts
+.endproc
+
+;endregion
+
+;region NMI handler
+
+;;; summary: My NMI handler.
+;;; notes:
+;;;   We need to catch <RUN STOP> + <RESTORE> else we go back to BASIC
+;;;   Bug: Pressing <RUN STOP> + <RESTORE> during load is handled incorrectly.
+.proc MY_NMI_HANDLER
+    ; check I = 1
+
+    ; Check for and prevent re-entry
+    pha
+    lda NMI_ENTRY_COUNT
+    if_ne_then
+        ; Already in an NMI call (not sure how this could happen, maybe on bouncing RESTORE key)
+        pla
+        rti
+    else_end
+
+    ; First entry
+    txa
+    pha
+        tya
+        pha
+            ; Disable all CIA-2 interrupts (why?)
+            lda # $7F
+            sta CIA_2_ICR
+            ; Process any pending CIA-2 interrupt.
+            ; NMI occured?
+            ldy CIA_2_ICR
+            if_mi_then
+                ; NMI occured yes
+                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
+            else_end
+
+            ; NMI occured no
+            ; RESTORE key was pressed
+            ; STOP key pressed? Z=1 (eq): yes, Z=0 (ne): no
+            jsr KERNAL_STOP
+            if_ne_then
+                ; STOP key was not pressed
+                jmp KERNAL_NNMI20                               ; Continue at original Kernal NMI handler
+            else_end
+
+            ; STOP key was pressed
+            inc NMI_ENTRY_COUNT                          ; Prevent re-entry
+
+            ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
+            lda # CPU_PORT_DATA_DEFAULT
+            sta CPU_PORT_DATA
+
+            ; Set text screen base to default (in case it got changed).
+            lda # >SCREEN_TEXT_RAM_BASE
+            sta KVAR_HIBASE
+
+            ; Save and restore colors because called Kernal routine changes them.
+            lda KVAR_COLOR
+            pha
+                lda VIC_EC
+                pha
+                    lda VIC_B0C
+                    pha
+                        jsr KERNAL_IOINIT
+                        jsr KERNAL_CINT
+                    pla
+                    sta VIC_B0C
+                pla
+                sta VIC_EC
+            pla
+            sta KVAR_COLOR
+
+            ; Restore stack pointer (stack might have been messed up).
+            ldx SAVE_S
+            txs
+
+            ; Enable interrupts so we can do file I/O.
+            cli
+
+            ; Close all files 14..1. Why not call KERNAL_CLALL?
+            from
+                ldx # 15
+            loop
+                txa
+                pha
+                    jsr KERNAL_CLOSE                        ; A+ X+ Y+ C+ N+ V? Z+
+                pla
+                tax
+            next
+                dex
+                bne _loop
+            end
+
+            lda     # PETSCII_RETURN
+            jsr     KERNAL_CHROUT
+
+            dec     NMI_ENTRY_COUNT                          ; Allow entry
+
+            jmp     RUN                                     ; Resume
+.endproc
+
+;endregion

@@ -15,3 +15,32 @@
 ;    along with this program.  If not, see https://www.gnu.org/licenses/.
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
+
+DEFAULT_DEVICE = 8
+DEFAULT_DRIVE = 0
+
+DISK_COMMAND_FA = 15
+DISK_COMMAND_SA = 15
+
+REDIRECT_INPUT_FA = 1
+REDIRECT_INPUT_SA = 2
+
+REDIRECT_OUTPUT_FA = 2
+REDIRECT_OUTPUT_FILE_SA = 3
+REDIRECT_OUTPUT_PRINTER_DA = 4
+REDIRECT_OUTPUT_PRINTER_SA = 7
+
+FILE_FA = 4
+FILE_SA = 4
+
+FILE_NAME_TEXT_COLON_OFFSET_NAME = 2
+
+COMMAND_NAME_SIZE = 5
+
+ARGC_MAX = 10
+
+ARGV_SIZE = ARGC_MAX
+
+PROGRAM_ENTRYPOINT = $1800                                  ; Entry point of loaded program
+
+FILE_NAME_MAX_LENGTH = 16
