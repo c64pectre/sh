@@ -146,11 +146,10 @@
     BINARY_TO_DECIMAL_DECIMAL_2     := $03C4
     BINARY_TO_DECIMAL_DECIMAL_3     := $03C5
     ; BUFFERED_OUT
-    BUFFERED_OUT_SAVE_X             := $03C6
-    BUFFERED_OUT_CURSOR             := $03C7
+    BUFFERED_OUT_CURSOR             := $03C6
 
-    ; 40 bytes available
-    AREA_3_AVAILABLE_FIRST := $03C8
+    ; 41 bytes available
+    AREA_3_AVAILABLE_FIRST := $03C9
     AREA_3_AVAILABLE_LAST  := $03FF
 
     ;endregion
@@ -222,16 +221,17 @@
         lda # >ARGV
         sta PARGV_HI
 
-        lda # 0
+        lda # 0                                             ; A = 0 = FALSE = PETSCVII_NUL
+
         ; ARGC = 0. Note: ARGC_HI is always 0 because ARGC_MAX = 10
         sta ARGC_LO
         sta ARGC_HI
 
         ; Reset NMI entry count
-        sta NMI_ENTRY_COUNT                                     ; NMI_ENTRY_COUNT = 0
+        sta NMI_ENTRY_COUNT
 
         ; Redirect input & output inactive
-        sta REDIRECT_INPUT_ACTIVE                               
+        sta REDIRECT_INPUT_ACTIVE
         sta REDIRECT_OUTPUT_ACTIVE
 
         ; Set no program loaded
@@ -309,8 +309,6 @@
         ; Y: Pointer in ARGV
         ldy # 0
         sty ARGC_LO
-        sty REDIRECT_INPUT_ACTIVE                               ; Redirect input inactive
-        sty REDIRECT_OUTPUT_ACTIVE                              ; Redirect output inactive
 
         ; X: cursor in INPUT_TEXT.
         from OUTER
@@ -337,7 +335,8 @@
                 bcc OUTER::_loop                                ; OK -> continue
 
                 ; Error redirecting input from file
-                jsr ERROR_CANT_OPEN_INPUT_FILE
+                ldx ERROR_NUMBER_CANT_OPEN_INPUT_FILE
+                jsr OUT_ERROR
                 rts
             else_end
 
@@ -353,7 +352,8 @@
                     bcc OUTER::_loop                            ; OK -> continue
 
                     ; Error redirecting output to printer
-                    jsr ERROR_PRINTER_NOT_PRESENT
+                    ldx ERROR_NUMBER_PRINTER_NOT_PRESENT
+                    jsr OUT_ERROR
                     rts
                 else_end
 
@@ -363,7 +363,8 @@
                 bcc OUTER::_loop                                ; OK -> continue
 
                 ; Error redirecting output to file
-                jsr ERROR_CANT_OPEN_OUTPUT_FILE
+                ldx # ERROR_NUMBER_CANT_OPEN_OUTPUT_FILE
+                jsr OUT_ERROR
                 rts
             else_end
 
@@ -437,6 +438,8 @@
         else_end
 
         jsr RESET_FILE_IO
+                ; assert ! REDIRECT_INPUT_ACTIVE
+                ; assert ! REDIRECT_OUTPUT_ACTIVE
 
         rts
     .endproc
@@ -499,7 +502,8 @@
             jsr LOAD_PROGRAM
             if_cs_then
                 ; Load from system disk failed too.
-                jsr ERROR_COMMAND_NOT_FOUND
+                ldx # ERROR_NUMBER_COMMAND_NOT_FOUND
+                jsr OUT_ERROR
                 sec                                             ; FAIL
 
                 rts
@@ -590,7 +594,7 @@
         jsr KERNAL_CLRCHN
 
         ; Redirect input & output inactive
-        lda # 0
+        lda # FALSE
         sta REDIRECT_INPUT_ACTIVE
         sta REDIRECT_OUTPUT_ACTIVE
 
@@ -637,7 +641,6 @@
         txa                                                 ; A = X = FILE_NAME_TEXT.LENGTH
         ldx # <FILE_NAME_TEXT
         ldy # >FILE_NAME_TEXT
-
         jsr KERNAL_SETNAM
         ldx AL                                              ; X = AL = DA
         lda # FILE_FA                                       ; A = FILE_FA = FILE_SA
@@ -713,16 +716,22 @@
     ;;; summary: redirect input from file named `FILE_NAME_TEXT` extracted from `INPUT_TEXT` on work disk
     ;;; in:
     ;;;   INPUT_TEXT: Input text
-    ;;;   Y:
+    ;;;   X: Position in INPUT_TEXT
+    ;;;   Y: Offset in ARGV
     ;;; out:
     ;;;   REDIRECT_INPUT_ACTIVE: Set to 1: redirect input active
     ;;;   C: 0=OK 1=FAIL
     ;;; changed: A+ X- Y+ BX+
     ;;; notes: Need to preserve X & Y for PROCESS_INPUT_TEXT
     .proc REDIRECT_INPUT_FROM_FILE
+        bit REDIRECT_INPUT_ACTIVE
+        if_mi_then
+            ; Redirect input already active.
+            sec                                                 ; FAIL
+            rts
+        else_end
+
         sty BH
-            lda # 1
-            sta REDIRECT_INPUT_ACTIVE
             jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ Y=FILE_NAME_TEXT.LENGTH
             if_cs_then
                 rts                                             ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore Y.
@@ -744,6 +753,9 @@
 
                 lda WORK_DEVICE
                 jsr PROCESS_DISK_STATUS
+                if_cc_then
+                    dec REDIRECT_INPUT_ACTIVE               ; REDIRECT_INPUT_ACTIVE := TRUE
+                else_end
             ldx BL
         ldy BH
 
@@ -754,9 +766,14 @@
     ;;; changed: A+ X- Y- BX+
     ;;; notes: Need to preserve X & Y for PROCESS_INPUT_TEXT
     .proc REDIRECT_OUTPUT_TO_FILE
+        bit REDIRECT_OUTPUT_ACTIVE
+        if_mi_then
+            ; Redirect output already active.
+            sec                                                 ; FAIL
+            rts
+        else_end
+
         sty BH
-            lda # 1
-            sta REDIRECT_OUTPUT_ACTIVE
             jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ / X=Position in FILE_NAME_TEXT / Y=FILE_NAME_TEXT.LENGTH
             if_cs_then
                 ; FAIL
@@ -796,11 +813,14 @@
                 jsr KERNAL_OPEN
                 if_cs_then
                     ; FAIL
-                    rts                                         ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore  X & Y.
+                    rts                                     ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore  X & Y.
                 else_end
 
                 lda WORK_DEVICE
                 jsr PROCESS_DISK_STATUS
+                if_cc_then
+                    dec REDIRECT_OUTPUT_ACTIVE              ; REDIRECT_OUTPUT_ACTIVE := TRUE
+                else_end
             ldx BL
         ldy BH
 
@@ -837,6 +857,11 @@
             bne _loop
         end
 
+        ; Append NUL
+        iny
+        lda # PETSCII_NUL
+        sta DISK_STATUS_TEXT,y
+
         jsr KERNAL_CLRCHN
 
         if
@@ -849,34 +874,14 @@
         then
             ; ! (DISK_STATUS_TEXT_CODE_0 = "0" & DISK_STATUS_TEXT_CODE_1 = "0")
             ; Error
-            jsr OUT_DISK_STATUS_TEXT
-            sec
-            bcs _end                                            ; bra
-        else
-            ; OK
-            clc
-        end
+            ldx # <DISK_STATUS_TEXT
+            ldy # >DISK_STATUS_TEXT
+            jsr OUT_STRING_XY
+            sec                                             ; FAIL
+            rts
+        else_end
 
-        rts
-    .endproc
-
-    ;;; summary: Print disk status text to output (presumably screen)
-    .proc OUT_DISK_STATUS_TEXT
-        from
-            ldy # 0
-        loop
-            lda DISK_STATUS_TEXT,y
-            cmp # PETSCII_RETURN
-            beq _end                                            ; break
-            jsr KERNAL_CHROUT
-        next
-            iny
-            bne _loop                                           ; bra
-        L103E:
-        end
-
-        ; Print the RETURN too    
-        jsr KERNAL_CHROUT
+        clc                                                 ; OK
 
         rts
     .endproc
@@ -945,16 +950,20 @@
     ;;; changed: A+ X- Y- BX+
     ;;; notes: Need to preserve X & Y for PROCESS_INPUT_TEXT
     .proc REDIRECT_OUTPUT_TO_PRINTER
+        bit REDIRECT_OUTPUT_ACTIVE
+        if_mi_then
+            ; Redirect output already active.
+            sec                                             ; FAIL
+            rts
+        else_end
+
         stx BL
         sty BH
-            lda # 1
-            sta REDIRECT_OUTPUT_ACTIVE
-
             lda # REDIRECT_OUTPUT_FA
             ldx # REDIRECT_OUTPUT_PRINTER_DA
             ldy # REDIRECT_OUTPUT_PRINTER_SA
             jsr KERNAL_SETLFS
-            lda # 0                                                 ; No name
+            lda # 0                                         ; No name
             jsr KERNAL_SETNAM
             jsr KERNAL_OPEN
             if_cc_then
@@ -965,6 +974,9 @@
             php
                 jsr KERNAL_CLRCHN
             plp
+            if_cc_then
+                dec REDIRECT_OUTPUT_ACTIVE                  ; REDIRECT_OUTPUT_ACTIVE := TRUE
+            else_end
         ldy BH
         ldx BL
 
@@ -992,7 +1004,8 @@
         lda ARGC_LO
         cmp # 2
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
 
             rts
         else_end
@@ -1030,67 +1043,70 @@
         sty BH                                                  ; BH = DN
 
         lda # PETSCII_DOLLAR
-        sta DISK_COMMAND_TEXT + 0
+        sta FILE_NAME_TEXT + 0
 
-       ;txa                                                     ; A = X = DA
-       ;pha                                                     ; STACK = [DA]...
-       ;    tya                                                 ; A = Y = [DN]
        lda BH                                                   ; A = BH = DN
-            clc
-            adc # PETSCII_DIGIT_ZERO
-            sta DISK_COMMAND_TEXT + 1
+        clc
+        adc # PETSCII_DIGIT_ZERO
+        sta FILE_NAME_TEXT + 1
 
-            ldx # 2
-            lda ARGC_LO
-            cmp # 2
-            if_eq_then
-                lda # PETSCII_COLON
-                sta DISK_COMMAND_TEXT,x
-                inx
-                from
-                    lda ARGV_1_LO
-                    sta AL
-                    lda ARGV_1_HI
-                    sta AH
-                    ldy # 0
-                loop
-                    lda [AX],y
-                    beq _end                                    ; break
-                    sta DISK_COMMAND_TEXT,x
-                next
-                    iny
-                    inx
-                    bne _loop                                   ; bra
-                end
-
-                jmp _end
-            else
-                cmp # 1
-                if_ne_then
-                    pla
-                    jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+        ldx # 2
+        lda ARGC_LO
+        cmp # 2
+        if_eq_then
+            lda # PETSCII_COLON
+            sta FILE_NAME_TEXT,x
+            inx
+            lda ARGV_1_LO
+            sta AL
+            lda ARGV_1_HI
+            sta AH
+            from
+                ldy # 0
+            loop
+                lda [AX],y
+                beq _end                                    ; break
+                sta FILE_NAME_TEXT,x
+            next
+                iny
+                cpy # FILE_NAME_MAX_LENGTH + 1
+                if_eq_then
+                    ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+                    jsr OUT_ERROR
                     rts
                 else_end
+
+                inx
+                bne _loop                                   ; bra
             end
 
-            txa                                                 ; A = DIR_NAME_DOLLAR.LENGTH
-            ldx # <DISK_COMMAND_TEXT
-            ldy # >DISK_COMMAND_TEXT
-            jsr KERNAL_SETNAM
-       ;pla                                                     ; A = DA , STACK = ...
-       ;pha                                                     ; A = DA , STACK = [DA]...
-       ;    tax
-        ldx BL                                                  ; X = BL = DA
-            lda # FILE_FA
-            ldy # 0
-            jsr KERNAL_SETLFS
-            jsr KERNAL_OPEN
-            if_cs_then
+            jmp _end
+        else
+            cmp # 1
+            if_ne_then
                 pla
-                jsr ERROR_DEVICE_NOT_PRESENT
+                ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+                jsr OUT_ERROR
                 rts
             else_end
-       ;pla                                                     ; A = DA , STACK = ...
+        end
+
+        txa                                                 ; A = DIR_NAME_DOLLAR.LENGTH
+        ldx # <FILE_NAME_TEXT
+        ldy # >FILE_NAME_TEXT
+        jsr KERNAL_SETNAM
+        ldx BL                                                  ; X = BL = DA
+        lda # FILE_FA
+        ldy # 0
+        jsr KERNAL_SETLFS
+        jsr KERNAL_OPEN
+        if_cs_then
+            pla
+            ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
+            jsr OUT_ERROR
+            rts
+        else_end
+
         lda BL                                                  ; A = BL = DA
         jsr PROCESS_DISK_STATUS
         if_cs_then
@@ -1176,7 +1192,8 @@
         lda ARGC_LO
         cmp # 2
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
 
             rts
         else_end
@@ -1195,16 +1212,7 @@
         ldx # DISK_COMMAND_FA
         jsr KERNAL_CHKOUT
 
-        from
-            ldy # 0
-        loop
-            lda [AX],y
-            beq _end
-            jsr KERNAL_CHROUT
-        next
-            iny
-            bne _loop
-        end
+        jsr OUT_STRING_AX
 
         lda # PETSCII_RETURN
         jsr KERNAL_CHROUT
@@ -1220,7 +1228,8 @@
         lda ARGC_LO
         cmp # 2
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1250,7 +1259,8 @@
             iny
             cpy # FILE_NAME_MAX_LENGTH + 1
             if_eq_then
-                jsr ERROR_FILE_NAME_TOO_LONG
+                ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+                jsr OUT_ERROR
                 rts
             else_end
         next
@@ -1272,7 +1282,8 @@
         jsr KERNAL_SETLFS
         jsr KERNAL_OPEN
         if_cs_then
-            jsr ERROR_DEVICE_NOT_PRESENT
+            ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1288,7 +1299,8 @@
         lda ARGC_LO
         cmp # 3
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1317,7 +1329,8 @@
                 iny
                 cpy # FILE_NAME_MAX_LENGTH + 1
                 if_eq_then
-                    jsr ERROR_FILE_NAME_TOO_LONG
+                    ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+                    jsr OUT_ERROR
                     rts
                 else_end
             next
@@ -1347,7 +1360,8 @@
             iny
             cpy # FILE_NAME_MAX_LENGTH + 1
             if_eq_then
-                jsr ERROR_FILE_NAME_TOO_LONG
+                ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+                jsr OUT_ERROR
                 rts
             else_end
         next
@@ -1368,7 +1382,8 @@
         jsr KERNAL_SETLFS
         jsr KERNAL_OPEN
         if_cs_then
-            jsr ERROR_DEVICE_NOT_PRESENT
+            ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1384,7 +1399,8 @@
         lda ARGC_LO
         cmp # 2
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1394,28 +1410,21 @@
         lda ARGV_1_HI
         sta AH
 
-        ; Y := ARGV[1].LENGTH
-        from
-            ldy # 0
-        loop
-            lda [AX],y
-            beq _end                                            ; break
-        next
-            iny
-            bne _loop                                           ; bra
-        end
+        ; Y := AX.LENGTH = ARGV[1].LENGTH
+        jsr STRING_LENGTH                                   ; Y = AX.LENGTH
 
         tya
         ldx AL
         ldy AH
         jsr KERNAL_SETNAM
-        lda # FILE_FA                                           ; A = FILE_FA = FILE_SA
+        lda # FILE_FA                                       ; A = FILE_FA = FILE_SA
         ldx WORK_DEVICE
-        tay                                                     ; Y = FILE_SA
+        tay                                                 ; Y = FILE_SA
         jsr KERNAL_SETLFS
         jsr KERNAL_OPEN
         if_cs_then
-            jsr ERROR_DEVICE_NOT_PRESENT
+            ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1430,13 +1439,10 @@
         jsr KERNAL_CHKIN
 
         from_loop
-            jsr KERNAL_CHRIN
-            tax
-            jsr KERNAL_READST
-            pha
-                txa
-                jsr BUFFERED_OUT_BYTE
-            pla
+            jsr IN_BYTE
+            jsr BUFFERED_OUT_BYTE
+            lda SAVE_KERNAL_READST
+            bne _end                                        ; error or eoi -> break
 
             ; STOP key pressed?
             jsr KERNAL_STOP
@@ -1452,7 +1458,7 @@
         rts
     .endproc
 
-    ;;;summary: Show or change work disk
+    ;;; summary: Show or change work disk
     .proc CMD_WORK
         lda ARGC_LO
         cmp # 1
@@ -1466,7 +1472,8 @@
 
         cmp # 3
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1495,7 +1502,8 @@
 
         cmp # 3
         if_ne_then
-            jsr ERROR_WRONG_NUMBER_OF_ARGUMENTS
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
             rts
         else_end
 
@@ -1515,15 +1523,47 @@
 ;
 ;region Helpers
 
-    ;;; summary: Put string
+    ;;; summary: String length
+    ;;; in:
+    ;;;   AX: String, nul-terminated
+    ;;; out:
+    ;;;   Y: Length of string
+    ;;; changed: A+ X- Y+
+    .proc STRING_LENGTH
+        ; Y := ARGV[1].LENGTH
+        from
+            ldy # 0
+        loop
+            lda [AX],y
+            beq _end                                            ; break
+        next
+            iny
+            bne _loop                                           ; bra
+        end
+
+        rts
+    .endproc
+
+    ;;; summary: Write string to output channel
     ;;; in:
     ;;;   X#Y: Nul-terminated string
     ;;; changed:
     ;;;   A+ X- Y+ AX+
-    .proc OUT_STRING
+    .proc OUT_STRING_XY
+        stx AL
+        sty AH
+        jsr OUT_STRING_AX
+
+        rts
+    .endproc
+
+    ;;; summary: Write string to output channel
+    ;;; in:
+    ;;;   AX: Nul-terminated string
+    ;;; changed:
+    ;;;   A+ X- Y+
+    .proc OUT_STRING_AX
         from
-            stx AL
-            sty AH
             ldy # 0
         loop
             lda [AX],y
@@ -1679,7 +1719,7 @@
         sta STRING_DRIVE_NUMBER_0
         ldx # <STRING_DEVICE
         ldy # >STRING_DEVICE
-        jsr OUT_STRING
+        jsr OUT_STRING_XY
 
         rts
     .endproc
@@ -1792,7 +1832,8 @@
             ; C=0 OK
             rts
         catch
-            jsr ERROR_DRIVE_NOT_PRESENT
+            ldx # ERROR_NUMBER_DRIVE_NOT_PRESENT
+            jsr OUT_ERROR
             sec                                                 ; FAIL
         finally_end
 
@@ -1832,69 +1873,18 @@
 ;
 ;region Errors
 
-    .proc ERROR_COMMAND_NOT_FOUND
-        ldx # <RESOURCE_STRING_COMMAND_NOT_FOUND
-        ldy # >RESOURCE_STRING_COMMAND_NOT_FOUND
-        jsr OUT_STRING
+    ;;; summary: Show error message
+    ;;; in:
+    ;;;   X: Error number
+    ;;; changed: A+ AX+
+    .proc OUT_ERROR
+        lda TABLE_ERROR_MESSAGE_LO,x
+        sta AL
+        lda TABLE_ERROR_MESSAGE_HI,x
+        sta AH
+        jsr OUT_STRING_AX
 
-        rts
-    .endproc
-
-    .proc ERROR_CANT_OPEN_INPUT_FILE
-        ldx # <RESOURCE_STRING_CANT_OPEN_INPUT_FILE
-        ldy # >RESOURCE_STRING_CANT_OPEN_INPUT_FILE
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    .proc ERROR_CANT_OPEN_OUTPUT_FILE
-        ldx # <RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
-        ldy # >RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    .proc ERROR_PRINTER_NOT_PRESENT
-        ldx # <RESOURCE_STRING_PRINTER_NOT_PRESENT
-        ldy # >RESOURCE_STRING_PRINTER_NOT_PRESENT
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    ;;; summary: Error: Device not present
-    .proc ERROR_DEVICE_NOT_PRESENT
-        ldx # <RESOURCE_STRING_DEVICE_NOT_PRESENT
-        ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    ;;; summary: Error: Wrong number of arguments
-    .proc ERROR_WRONG_NUMBER_OF_ARGUMENTS
-        ldx # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-        ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    .proc ERROR_DRIVE_NOT_PRESENT
-        ldx # <RESOURCE_STRING_DRIVE_NOT_PRESENT
-        ldy # >RESOURCE_STRING_DRIVE_NOT_PRESENT
-        jsr OUT_STRING
-
-        rts
-    .endproc
-
-    ;;; summary: Error: File name too long
-    .proc ERROR_FILE_NAME_TOO_LONG
-        ldx # <RESOURCE_STRING_FILE_NAME_TOO_LONG
-        ldy # >RESOURCE_STRING_FILE_NAME_TOO_LONG
-        jsr OUT_STRING
+        sec                                                 ; FAIL
 
         rts
     .endproc
@@ -1913,13 +1903,13 @@
     .endproc
 
     ;;; summary: Send byte in `A` to buffered output, flushing if buffer is full.
-    ;;; changed: A+ X+ Y+
+    ;;; changed: A+ X+ Y+ AL+
     ;;; notes:
     ;;;   Flush on PETSCII_RETURN or buffer full.
     ;;;   Not flushed: A- X- Y-
     ;;;   Flushed: A+ X+ Y+
     .proc BUFFERED_OUT_BYTE
-        stx BUFFERED_OUT_SAVE_X
+        stx AL
             ldx BUFFERED_OUT_CURSOR
             sta BUFFERED_OUT_BUFFER,x
             inc BUFFERED_OUT_CURSOR
@@ -1931,7 +1921,7 @@
             then
                 jsr BUFFERED_OUT_FLUSH
             else_end
-        ldx BUFFERED_OUT_SAVE_X
+        ldx AL
 
         rts
     .endproc
@@ -1939,14 +1929,14 @@
     ;;; summary: Flush buffered output
     ;;; changed: A+ X+ Y+
     .proc BUFFERED_OUT_FLUSH
-        lda REDIRECT_OUTPUT_ACTIVE
-        if_ne_then
+        bit REDIRECT_OUTPUT_ACTIVE
+        if_mi_then
             ; Redirect output active
             jsr KERNAL_CLRCHN                                   ; A+ X+
             ldx # REDIRECT_OUTPUT_FA
             jsr KERNAL_CHKOUT                                   ; A+ X+
         else_end
-
+  BREAK1:
         from
             ldx # 0
         loop
@@ -1959,8 +1949,8 @@
             bne _loop                                           ; bra
         end
 
-        lda REDIRECT_OUTPUT_ACTIVE
-        if_ne_then
+        bit REDIRECT_OUTPUT_ACTIVE
+        if_mi_then
             ; Redirect output active
             jsr KERNAL_CLRCHN                                   ; A+ X+
             ldx # FILE_FA
@@ -2070,6 +2060,7 @@
     ;;; out:
     ;;;   X: Command number, if Z=1
     ;;;   Z: 1 = found , 0 = not found
+    ;;; changed: A+ X- Y+ AX+
     .proc MAP_COMMAND_NAME_TO_COMMAND_NUMBER
         from
             ldx # TABLE_COMMAND_NAME_SIZE - 1

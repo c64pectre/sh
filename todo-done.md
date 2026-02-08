@@ -235,3 +235,5 @@ Can be reduced to one.
 We do not need to reset memory layout because `KERNAL_IOINIT` does that.
 
 We can reuse `RESET_FILE_IO`.
+
+## DONE pr not stopping after EOI

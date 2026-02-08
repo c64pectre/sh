@@ -62,3 +62,35 @@ COMMAND_NUMBER_WORK = 8
 COMMAND_NUMBER_SYS  = 9
 
 ;endregion
+
+;region Error numbers
+
+ERROR_NUMBER_COMMAND_NOT_FOUND          = 0
+ERROR_NUMBER_CANT_OPEN_INPUT_FILE       = 1
+ERROR_NUMBER_CANT_OPEN_OUTPUT_FILE      = 2
+ERROR_NUMBER_PRINTER_NOT_PRESENT        = 3
+ERROR_NUMBER_DEVICE_NOT_PRESENT         = 4
+ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS  = 5
+ERROR_NUMBER_DRIVE_NOT_PRESENT          = 6
+ERROR_NUMBER_FILE_NAME_TOO_LONG         = 7
+
+;endregion
+
+;
+;region Boolean values
+
+    ;;; summary: False value
+    ;;; notes:
+    ;;;   You can use the `bit` instruction to test a boolean value without changing any register:
+    ;;;       bit M
+    ;;;       bpl FALSE_BRANCH
+    ;;;       bmi TRUE_BRANCH
+    ;;;   You can flip a boolean value without changing any register:
+    ;;;     From `FALSE` to `TRUE`:
+    ;;;         dec M
+    ;;;     From `TRUE` to `FALSE`:
+    ;;;         inc M
+    FALSE = 0
+    TRUE = $FF
+
+    ;endregion
