@@ -87,9 +87,9 @@ You can type very long names for `l`, `ls`, `mv`, `rm` that can lead to buffer o
 
 ## TODO Add `echo` command
 
-## TODO Cancel (STOP key) `l`, `ls`, `pr`
+## DONE Cancel (STOP key) `l`, `ls`, `pr`
 
-## TODO Pause (SHIFT) `pr`
+## DONE Pause (SHIFT) `pr`
 
 ## TODO Rename `pr` to `cat`
 
