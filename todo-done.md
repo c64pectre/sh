@@ -180,7 +180,11 @@ but this is not possible:
 
     COMMAND < "from file" > "to file"
 
-## Optimize code
+## TODO Own line editor
+
+So we do not have the quirky behavior of the standard editor.
+
+## TODO Optimize code
 
 - jsr + rts -> jmp
 
