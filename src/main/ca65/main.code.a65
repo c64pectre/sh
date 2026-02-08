@@ -255,7 +255,7 @@
 
         from_loop
             jsr SHOW_PROMPT
-            jsr KEYBOARD_READ_LINE_TO_INPUT_TEXT
+            jsr IN_READ_LINE_TO_INPUT_TEXT
             jsr PROCESS_INPUT_TEXT
         next
             jmp _loop
@@ -264,6 +264,7 @@
         ; Does not come here
     .endproc
 
+    ;;; summary: Show prompt
     .proc SHOW_PROMPT
         lda # PETSCII_DOLLAR
         jsr KERNAL_CHROUT
@@ -273,7 +274,10 @@
         rts
     .endproc
 
-    .proc KEYBOARD_READ_LINE_TO_INPUT_TEXT
+    ;;; summary: Read line from input (presumably keyboard)
+    ;;; out:
+    ;;;   INPUT_TEXT: One line of text, PETSCII_RETURN replaced with PETSCII_NUL.
+    .proc IN_READ_LINE_TO_INPUT_TEXT
         from
             ldy # 0
         loop
@@ -561,19 +565,22 @@
     .endproc
 
     ;;; summary: Back to default file I/O
+    ;;; changed: A+ X+ Y+ AL+
     .proc RESET_FILE_IO
-        lda # FILE_FA
-        jsr KERNAL_CLOSE
-
-        lda # REDIRECT_INPUT_FA
-        jsr KERNAL_CLOSE
-
-        lda # REDIRECT_OUTPUT_FA
-        jsr KERNAL_CLOSE
-
-        ; Must be last, else files are not closed correctly
-        lda # DISK_COMMAND_FA
-        jsr KERNAL_CLOSE
+        ldx ZPKERNAL_LDTND
+        dex
+        if_pl_then
+            from
+                stx AL
+            loop
+                ldx AL
+                lda KVAR_LAT,x
+                jsr KERNAL_CLOSE                                ; A+ X+ Y+
+            next
+                dec AL
+                bpl _loop
+            end
+        else_end
 
         jsr KERNAL_CLRCHN
 
@@ -1988,10 +1995,6 @@
                     ; Prevent re-entry
                     inc NMI_ENTRY_COUNT
 
-                    ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
-                    lda # CPU_PORT_DATA_DEFAULT
-                    sta CPU_PORT_DATA
-
                     ; Set text screen base to default (in case it got changed).
                     lda # >SCREEN_TEXT_RAM_BASE
                     sta KVAR_HIBASE
@@ -2003,20 +2006,18 @@
                         pha
                             lda VIC_B0C
                             pha
-                                jsr KERNAL_IOINIT           ; Resets NMI handler to default
+                                jsr KERNAL_IOINIT
+                                ; Kernal ioinit:
+                                ; Also sets memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off
                                 jsr KERNAL_CINT
+                                ; Kernal cint:
+                                ; Also sets default I/O: output dflto := 3 (screen), input dfltn := 0 (keyboard)
                             pla
                             sta VIC_B0C
                         pla
                         sta VIC_EC
                     pla
                     sta KVAR_COLOR
-
-                    ; Set our NMI handler
-                    lda # <MY_NMI_HANDLER
-                    sta KERNAL_NMINV_LO
-                    lda # >MY_NMI_HANDLER
-                    sta KERNAL_NMINV_HI
 
                     ; Restore stack pointer to where it was on NMI.
                     ldx SAVE_S
@@ -2025,27 +2026,7 @@
                     ; Enable interrupts so we can do file I/O.
                     cli
 
-                    ; Close all files 15..1. Why not call KERNAL_CLALL?
-                    from
-                        ldx # 15
-                    loop
-                        txa
-                        pha
-                            jsr KERNAL_CLOSE                    ; A+ X+ Y+ C+ N+ V? Z+
-                        pla
-                        tax
-                    next
-                        dex
-                        bne _loop
-                    end
-
-                    ; Redirect input inactive
-                    lda # 0
-                    sta REDIRECT_INPUT_ACTIVE
-                    sta REDIRECT_OUTPUT_ACTIVE
-
-                    lda # PETSCII_RETURN
-                    jsr KERNAL_CHROUT
+                    jsr RESET_FILE_IO
 
                     dec NMI_ENTRY_COUNT                         ; Allow entry
                     jmp RUN                                     ; Resume
