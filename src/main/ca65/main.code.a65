@@ -436,9 +436,9 @@
             rts
         else_end
 
-        lda MAP_COMMAND_NUMBER_TO_HANDLER_LO,x
+        lda TABLE_COMMAND_HANDLER_LO,x
         sta DL
-        lda MAP_COMMAND_NUMBER_TO_HANDLER_HI,x
+        lda TABLE_COMMAND_HANDLER_HI,x
         sta DH
         jsr JSR_INDIRECT_DX
         clc
@@ -2083,7 +2083,7 @@
     ;endregion
 
 ;
-;region Map command name to command number
+;region Maps
 
     ;;; summary: Map command name to number
     ;;; in:
@@ -2093,13 +2093,13 @@
     ;;;   Z: 1 = found , 0 = not found
     .proc MAP_COMMAND_NAME_TO_COMMAND_NUMBER
         from
-            ldx # MAP_COMMAND_NAME_TO_COMMAND_NUMBER_SIZE - 1
+            ldx # TABLE_COMMAND_NAME_SIZE - 1
         loop
-            lda MAP_COMMAND_NAME_TO_COMMAND_NUMBER_KEYS_LO, x
+            lda TABLE_COMMAND_NAME_LO, x
             sta AL
-            lda MAP_COMMAND_NAME_TO_COMMAND_NUMBER_KEYS_HI, x
+            lda TABLE_COMMAND_NAME_HI, x
             sta AH
-            jsr STRING_COMPARE                            ; A+ X- Y+
+            jsr STRING_COMPARE                                  ; A+ X- Y+
             beq _end                                            ; Z=1 -> equal -> break
         next
             dex
