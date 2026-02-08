@@ -1494,7 +1494,7 @@
     ;;; in:
     ;;;   X#Y: Nul-terminated string
     ;;; changed:
-    ;;;   AX
+    ;;;   A+ X- Y+ AX+
     .proc OUT_STRING
         from
             stx AL
@@ -1504,26 +1504,6 @@
             lda [AX],y
             beq _end                                            ; break
             jsr KERNAL_CHROUT                                   ; A- X- Y- C0
-        next
-            iny
-            bne _loop
-        end
-
-        rts
-    .endproc
-
-    ;;; summary: Put string
-    ;;; in:
-    ;;;   AX: Nul-terminated string
-    ;;; changed:
-    ;;;   A+ X- Y+
-    .proc OUT_STRING_AX
-        from
-            ldy # 0
-        loop
-            lda [AX],y
-            beq _end                                            ; break
-            jsr KERNAL_CHROUT                                   ; A- X- Y-
         next
             iny
             bne _loop
@@ -1810,12 +1790,12 @@
     ;;; summary: Display error message and reset file I/O
     ;;; in:
     ;;;   X: Error number. See main.inc ERROR_NUMBER_*
+    ;;; changed: A+ X+ Y+
     .proc ERROR
+        ldy MAP_ERROR_NUMBER_TO_RESOURCE_STRING_HI,x
         lda MAP_ERROR_NUMBER_TO_RESOURCE_STRING_LO,x
-        sta AL
-        lda MAP_ERROR_NUMBER_TO_RESOURCE_STRING_HI,x
-        sta AH
-        jsr OUT_STRING_AX
+        tax
+        jsr OUT_STRING
 
         rts    
     .endproc
