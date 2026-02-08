@@ -1438,8 +1438,11 @@
         ldx # FILE_FA
         jsr KERNAL_CHKIN
 
+        lda # 0
+        sta SAVE_KERNAL_READST
+
         from_loop
-            jsr IN_BYTE
+              jsr IN_BYTE
             jsr BUFFERED_OUT_BYTE
             lda SAVE_KERNAL_READST
             bne _end                                        ; error or eoi -> break
