@@ -556,12 +556,16 @@
 
     ;;; summary: Back to default file I/O
     .proc RESET_FILE_IO
+        lda # FILE_FA
+        jsr KERNAL_CLOSE
+
         lda # REDIRECT_INPUT_FA
         jsr KERNAL_CLOSE
 
         lda # REDIRECT_OUTPUT_FA
         jsr KERNAL_CLOSE
 
+        ; Must be last, else files are not closed correctly
         lda # DISK_COMMAND_FA
         jsr KERNAL_CLOSE
 
@@ -975,7 +979,6 @@
         lda ARGV_1_HI
         sta BH
         jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1068,9 +1071,6 @@
         lda BL                                                  ; A = BL = DA
         jsr PROCESS_DISK_STATUS
         if_cs_then
-            lda # FILE_FA
-            jsr KERNAL_CLOSE
-            jsr RESET_FILE_IO
             rts
         else_end
 
@@ -1144,9 +1144,9 @@
         lda # PETSCII_RETURN
         jsr BUFFERED_OUT_BYTE
         jsr BUFFERED_OUT_FLUSH
+
         lda # FILE_FA
         jsr KERNAL_CLOSE
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1191,7 +1191,6 @@
         jsr KERNAL_CHROUT
         lda WORK_DEVICE
         jsr PROCESS_DISK_STATUS
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1260,7 +1259,6 @@
 
         lda WORK_DEVICE
         jsr PROCESS_DISK_STATUS
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1357,7 +1355,6 @@
 
         lda WORK_DEVICE
         jsr PROCESS_DISK_STATUS
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1406,9 +1403,6 @@
         lda WORK_DEVICE
         jsr PROCESS_DISK_STATUS
         if_cs_then
-            lda # FILE_FA
-            jsr KERNAL_CLOSE
-            jsr RESET_FILE_IO
             rts
         else_end
 
@@ -1429,9 +1423,6 @@
         end
 
         jsr BUFFERED_OUT_FLUSH
-        lda # FILE_FA
-        jsr KERNAL_CLOSE
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1462,8 +1453,6 @@
             sty WORK_DRIVE
         else_end
 
-        jsr RESET_FILE_IO
-
         rts
     .endproc
 
@@ -1492,8 +1481,6 @@
             stx SYS_DEVICE
             sty SYS_DRIVE
         else_end
-
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1688,7 +1675,6 @@
         ldx # <STRING_DEVICE
         ldy # >STRING_DEVICE
         jsr OUT_STRING
-        jsr RESET_FILE_IO
 
         rts
     .endproc
@@ -1830,7 +1816,6 @@
         lda MAP_ERROR_NUMBER_TO_RESOURCE_STRING_HI,x
         sta AH
         jsr OUT_STRING_AX
-        jsr RESET_FILE_IO
 
         rts    
     .endproc
@@ -1865,8 +1850,6 @@
 
     ;;; summary: Error: Device not present
     .proc ERROR_DEVICE_NOT_PRESENT
-        lda # FILE_FA
-        jsr KERNAL_CLOSE
         ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
         jsr ERROR
 
