@@ -983,6 +983,156 @@
         rts
     .endproc
 
+    ;;; summary: Print device number in `X` (could be 8-30, so need 1 or 2 positions) and drive number in `Y' (0 or 1), and reset file I/O.
+    ;;; in:
+    ;;;   X: Device
+    ;;;   Y: Drive
+    .proc OUT_DEVICE_DRIVE
+        lda # PETSCII_SPACE
+        sta STRING_DEVICE_NUMBER_1
+        txa
+        ldx # 0
+        cmp # 10
+        if_ge_then
+            pha
+                lda # PETSCII_DIGIT_ONE
+                sta STRING_DEVICE_NUMBER_0
+            pla
+            sec
+            sbc # 10
+            inx
+        else_end
+
+        clc
+        adc # PETSCII_DIGIT_ZERO
+        sta STRING_DEVICE_NUMBER_0,x
+        clc
+        tya
+        adc # PETSCII_DIGIT_ZERO
+        sta STRING_DRIVE_NUMBER_0
+        ldx # <STRING_DEVICE
+        ldy # >STRING_DEVICE
+        jsr OUT_STRING_XY
+
+        rts
+    .endproc
+
+    ;;; summary: Get device and drive number from string at ARGV_1 and ensure device is present.
+    ;;; in:
+    ;;;   ARGV_1: String
+    ;;; out:
+    ;;;   X:  Device number: 8,...,19
+    ;;;   Y:  Drive number: 0 or 1
+    ;;;   C: 0=OK 1=FAIL
+    ;;; changed:
+    ;;;   A+ X+ Y+ AX BX
+    ;;; notes:
+    ;;;   We test only if the device is present, not the drive.
+    ;;;   This is because it is not possible to test if a drive is present (without a readable disk being present).
+    .proc CHANGE_DEVICE_DRIVE
+        try
+            ; Device number is in ARGV[1]
+            lda ARGV_1_LO
+            sta AL
+            lda ARGV_1_HI
+            sta AH
+            ldx # 0
+            ldy # 0
+            lda [AX],y
+            cmp # PETSCII_DIGIT_ONE
+            if_eq_then
+                ; A = "1"
+                ldx # 10
+                iny
+                lda [AX],y
+                if_eq_then
+                    ; Device "1" is not possible -> error
+                    jmp _catch                                  ; throw
+                else_end
+            else_end
+
+            ; A != "1"
+            txa
+            clc
+            adc [AX],y
+            sec
+            sbc # PETSCII_DIGIT_ZERO
+            ; A: Device number (8,9,10,...,19)
+            sta BL
+
+            iny
+            lda [AX],y
+            if_ne_then
+                ; Another character -> error
+                jmp _catch                                  ; throw
+            else_end
+
+            ; Get drive number from ARGV[1] into STRING_DRIVE_NUMBER_0
+            lda ARGV_2_LO
+            sta AL
+            lda ARGV_2_HI
+            sta AH
+
+            ldy # 0
+            lda [AX],y
+            cmp # PETSCII_DIGIT_ZERO
+            if
+                bcc _then                                       ; A < "0" -> error
+                cmp # PETSCII_DIGIT_TWO
+                bcc _end                                       ; A < "2" -> ok
+            then
+                ; A < "0" || A >= "2"
+            else
+                jmp _catch
+            end
+
+            tax
+            iny
+            lda [AX],y
+            if_ne_then
+                ; Another character -> error
+                jmp _catch
+            else_end
+
+            ; X: drive number as character "0" or "1"
+            txa
+            sec
+            sbc # PETSCII_DIGIT_ZERO
+            ; A: drive number
+            sta BH
+
+            ; BL: Device number
+            ; BH: Drive number
+            ; Test if device present by sending Memory Read command
+            lda # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
+            ldx BL
+            tay
+            jsr KERNAL_SETLFS
+            ldx # <MR_TEXT
+            ldy # >MR_TEXT
+            lda # MR_TEXT_LENGTH
+            jsr KERNAL_SETNAM
+            jsr KERNAL_OPEN
+            php
+                lda # DISK_COMMAND_FA
+                jsr KERNAL_CLOSE
+            plp
+            bcs _catch                                          ; Device not present -> rethrow
+
+            ; C=0 -> Device is present
+            ldx BL
+            ldy BH
+            ; C=0 OK
+            rts
+        catch
+            ldx # ERROR_NUMBER_DRIVE_NOT_PRESENT
+            jsr OUT_ERROR
+            sec                                                 ; FAIL
+        finally_end
+
+        rts
+    .endproc
+
 ;
 ;region Build-in commands
 
@@ -1689,156 +1839,6 @@
             sta SAVE_KERNAL_READST
         pla
         clc                                                     ; OK
-
-        rts
-    .endproc
-
-    ;;; summary: Print device number in `X` (could be 8-30, so need 1 or 2 positions) and drive number in `Y' (0 or 1), and reset file I/O.
-    ;;; in:
-    ;;;   X: Device
-    ;;;   Y: Drive
-    .proc OUT_DEVICE_DRIVE
-        lda # PETSCII_SPACE
-        sta STRING_DEVICE_NUMBER_1
-        txa
-        ldx # 0
-        cmp # 10
-        if_ge_then
-            pha
-                lda # PETSCII_DIGIT_ONE
-                sta STRING_DEVICE_NUMBER_0
-            pla
-            sec
-            sbc # 10
-            inx
-        else_end
-
-        clc
-        adc # PETSCII_DIGIT_ZERO
-        sta STRING_DEVICE_NUMBER_0,x
-        clc
-        tya
-        adc # PETSCII_DIGIT_ZERO
-        sta STRING_DRIVE_NUMBER_0
-        ldx # <STRING_DEVICE
-        ldy # >STRING_DEVICE
-        jsr OUT_STRING_XY
-
-        rts
-    .endproc
-
-    ;;; summary: Get device and drive number from string at ARGV_1 and ensure device is present.
-    ;;; in:
-    ;;;   ARGV_1: String
-    ;;; out:
-    ;;;   X:  Device number: 8,...,19
-    ;;;   Y:  Drive number: 0 or 1
-    ;;;   C: 0=OK 1=FAIL
-    ;;; changed:
-    ;;;   A+ X+ Y+ AX BX
-    ;;; notes:
-    ;;;   We test only if the device is present, not the drive.
-    ;;;   This is because it is not possible to test if a drive is present (without a readable disk being present).
-    .proc CHANGE_DEVICE_DRIVE
-        try
-            ; Device number is in ARGV[1]
-            lda ARGV_1_LO
-            sta AL
-            lda ARGV_1_HI
-            sta AH
-            ldx # 0
-            ldy # 0
-            lda [AX],y
-            cmp # PETSCII_DIGIT_ONE
-            if_eq_then
-                ; A = "1"
-                ldx # 10
-                iny
-                lda [AX],y
-                if_eq_then
-                    ; Device "1" is not possible -> error
-                    jmp _catch                                  ; throw
-                else_end
-            else_end
-
-            ; A != "1"
-            txa
-            clc
-            adc [AX],y
-            sec
-            sbc # PETSCII_DIGIT_ZERO
-            ; A: Device number (8,9,10,...,19)
-            sta BL
-
-            iny
-            lda [AX],y
-            if_ne_then
-                ; Another character -> error
-                jmp _catch                                  ; throw
-            else_end
-
-            ; Get drive number from ARGV[1] into STRING_DRIVE_NUMBER_0
-            lda ARGV_2_LO
-            sta AL
-            lda ARGV_2_HI
-            sta AH
-
-            ldy # 0
-            lda [AX],y
-            cmp # PETSCII_DIGIT_ZERO
-            if
-                bcc _then                                       ; A < "0" -> error
-                cmp # PETSCII_DIGIT_TWO
-                bcc _end                                       ; A < "2" -> ok
-            then
-                ; A < "0" || A >= "2"
-            else
-                jmp _catch
-            end
-
-            tax
-            iny
-            lda [AX],y
-            if_ne_then
-                ; Another character -> error
-                jmp _catch
-            else_end
-
-            ; X: drive number as character "0" or "1"
-            txa
-            sec
-            sbc # PETSCII_DIGIT_ZERO
-            ; A: drive number
-            sta BH
-
-            ; BL: Device number
-            ; BH: Drive number
-            ; Test if device present by sending Memory Read command
-            lda # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            ldx BL
-            tay
-            jsr KERNAL_SETLFS
-            ldx # <MR_TEXT
-            ldy # >MR_TEXT
-            lda # MR_TEXT_LENGTH
-            jsr KERNAL_SETNAM
-            jsr KERNAL_OPEN
-            php
-                lda # DISK_COMMAND_FA
-                jsr KERNAL_CLOSE
-            plp
-            bcs _catch                                          ; Device not present -> rethrow
-
-            ; C=0 -> Device is present
-            ldx BL
-            ldy BH
-            ; C=0 OK
-            rts
-        catch
-            ldx # ERROR_NUMBER_DRIVE_NOT_PRESENT
-            jsr OUT_ERROR
-            sec                                                 ; FAIL
-        finally_end
 
         rts
     .endproc
