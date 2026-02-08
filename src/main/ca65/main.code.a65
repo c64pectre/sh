@@ -133,26 +133,24 @@
     SAVE_KERNAL_NMINV_HI            := $03B9
     SAVE_S                          := $03BA
     NMI_ENTRY_COUNT                 := $03BB
-    ; LOAD_PROGRAM
-    LOAD_PROGRAM_SAVE_X_DEVICE      := $03BC
     ; CMD_DIR, IN_BYTE
-    SAVE_KERNAL_READST              := $03BD
+    SAVE_KERNAL_READST              := $03BC
     ; BINARY_TO_DECIMAL
-    BINARY_TO_DECIMAL_BINARY_LO     := $03BE
-    BINARY_TO_DECIMAL_BINARY_HI     := $03BF
-    BINARY_TO_DECIMAL_TMP           := $03C0
-    BINARY_TO_DECIMAL_DECIMAL_DIGIT := $03C1
-    BINARY_TO_DECIMAL_DECIMAL       := $03C2
-    BINARY_TO_DECIMAL_DECIMAL_0     := $03C3
-    BINARY_TO_DECIMAL_DECIMAL_1     := $03C4
-    BINARY_TO_DECIMAL_DECIMAL_2     := $03C5
-    BINARY_TO_DECIMAL_DECIMAL_3     := $03C6
+    BINARY_TO_DECIMAL_BINARY_LO     := $03BD
+    BINARY_TO_DECIMAL_BINARY_HI     := $03BE
+    BINARY_TO_DECIMAL_TMP           := $03BF
+    BINARY_TO_DECIMAL_DECIMAL_DIGIT := $03C0
+    BINARY_TO_DECIMAL_DECIMAL       := $03C1
+    BINARY_TO_DECIMAL_DECIMAL_0     := $03C2
+    BINARY_TO_DECIMAL_DECIMAL_1     := $03C3
+    BINARY_TO_DECIMAL_DECIMAL_2     := $03C4
+    BINARY_TO_DECIMAL_DECIMAL_3     := $03C5
     ; BUFFERED_OUT
-    BUFFERED_OUT_SAVE_X             := $03C7
-    BUFFERED_OUT_CURSOR             := $03C8
+    BUFFERED_OUT_SAVE_X             := $03C6
+    BUFFERED_OUT_CURSOR             := $03C7
 
-    ; 39 bytes available
-    AREA_3_AVAILABLE_FIRST := $03C9
+    ; 40 bytes available
+    AREA_3_AVAILABLE_FIRST := $03C8
     AREA_3_AVAILABLE_LAST  := $03FF
 
     ;endregion
@@ -426,8 +424,8 @@
             sta BH
             ldy # 0
             lda [BX],y
+            ; Argument 0 not empty?
             if_ne_then
-                ; ARGV[0][0] != PETSCII_NUL
                 jsr TRY_BUILT_IN_COMMAND
                 if_cs_then                                      ; Not built-in command
                     jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
@@ -466,6 +464,7 @@
     ;;;   BX: Name of program to load.
     ;;; out:
     ;;;   C: 0=OK 1=FAIL
+    ;;; changed: A+ X? Y? AX+
     .proc LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
         lda # <LOADED_PROGRAM_NAME
         sta AL
@@ -600,11 +599,12 @@
 
     ;;; summary: Load program
     ;;; in:
-    ;;;   X: Device
-    ;;;   Y: Drive
+    ;;;   X: Device Address (DA)
+    ;;;   Y: Drive Number (DN)
     ;;;   BX:   File name
+    ;;; changed: A+ X+ Y+ AL+
     .proc LOAD_PROGRAM
-        stx LOAD_PROGRAM_SAVE_X_DEVICE
+        stx AL                                              ; AL = X = DA   
         tya
         clc
         adc # PETSCII_DIGIT_ZERO
@@ -613,17 +613,17 @@
         sta FILE_NAME_TEXT_COLON
         from
             ldy # 0
-            ldx # FILE_NAME_TEXT_COLON_OFFSET_NAME              ; 2
+            ldx # FILE_NAME_TEXT_COLON_OFFSET_NAME          ; 2
         loop
             lda [BX],y
-            beq _end                                            ; NUL -> break
+            beq _end                                        ; NUL -> break
             sta  FILE_NAME_TEXT,x
         next
             iny
             inx
             bne _loop
         end
-        
+    
         ; Add ".sh"
         lda # PETSCII_FULL_STOP
         sta FILE_NAME_TEXT,x
@@ -633,51 +633,55 @@
         inx
         lda # PETSCII_LATIN_LETTER_H
         sta FILE_NAME_TEXT,x
-        inx                                                     ; X = FILE_NAME_TEXT.LENGTH
-        txa                                                     ; A = X = FILE_NAME_TEXT.LENGTH
+        inx                                                 ; X = FILE_NAME_TEXT.LENGTH
+        txa                                                 ; A = X = FILE_NAME_TEXT.LENGTH
         ldx # <FILE_NAME_TEXT
         ldy # >FILE_NAME_TEXT
+
         jsr KERNAL_SETNAM
-        ldx LOAD_PROGRAM_SAVE_X_DEVICE
-        lda # FILE_FA                                           ; A = FILE_FA = FILE_SA
-        tay                                                     ; Y = FILE_SA
+        ldx AL                                              ; X = AL = DA
+        lda # FILE_FA                                       ; A = FILE_FA = FILE_SA
+        tay                                                 ; Y = FILE_SA
         jsr KERNAL_SETLFS
         lda # KERNAL_LOAD_LOAD
         jsr KERNAL_LOAD
-        if_cs_then
-            ; Load error
-            cmp # KERNAL_ERROR_DEVICE_NOT_PRESENT
-            if_eq_then
-                ; Device not present
-                rts
-            else_end
-
-            ; Device present. (Attempt to) read (but not show) disk status.
-            lda # DISK_COMMAND_FA                       ; DISK_COMMAND_FA = DISK_COMMAND_SA
-            ldx LOAD_PROGRAM_SAVE_X_DEVICE
-            tay
-            jsr KERNAL_SETLFS
-            lda # 0                                     ; No name
-            jsr KERNAL_SETNAM
-            jsr KERNAL_OPEN
-            if_cc_then
-                ldx # DISK_COMMAND_FA
-                jsr KERNAL_CHKIN
-                if_cc_then
-                    from_loop
-                        jsr KERNAL_CHRIN
-                    next
-                        cmp # PETSCII_RETURN
-                        bne _loop
-                    end
-                else_end
-            else_end
-
-            lda  # DISK_COMMAND_FA
-            jsr KERNAL_CLOSE
-            jsr KERNAL_CLRCHN
-            sec                                                 ; FAIL
+        if_cc_then
+            rts                                             ; OK
         else_end
+
+        ; Load error
+        cmp # KERNAL_ERROR_DEVICE_NOT_PRESENT
+        if_eq_then
+            ; Device not present
+            sec
+            rts
+        else_end
+
+        ; Device present. (Attempt to) read (but not show) disk status.
+        lda # DISK_COMMAND_FA                               ; DISK_COMMAND_FA = DISK_COMMAND_SA
+        ldx AL                                              ; X = AL = DA
+        tay
+        jsr KERNAL_SETLFS
+        lda # 0                                             ; No name
+        jsr KERNAL_SETNAM
+        jsr KERNAL_OPEN
+        if_cc_then
+            ldx # DISK_COMMAND_FA
+            jsr KERNAL_CHKIN
+            if_cc_then
+                from_loop
+                    jsr KERNAL_CHRIN
+                next
+                    cmp # PETSCII_RETURN
+                    bne _loop
+                end
+            else_end
+        else_end
+
+        lda # DISK_COMMAND_FA
+        jsr KERNAL_CLOSE
+        jsr KERNAL_CLRCHN
+        sec                                                 ; FAIL
 
         rts
     .endproc
