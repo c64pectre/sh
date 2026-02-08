@@ -181,15 +181,21 @@
 
         ; Set border color
         lda CONFIG_BORDER_COLOR
-        sta VIC_EC
+        if_pl_then
+            sta VIC_EC
+        else_end
 
         ; Set background color
         lda CONFIG_BACKGROUND_COLOR
-        sta VIC_B0C
+        if_pl_then
+            sta VIC_B0C
+        else_end
 
         ; Set foreground color
         lda CONFIG_FOREGROUND_COLOR_CHAR
-        jsr KERNAL_CHROUT
+        if_ne_then
+            jsr KERNAL_CHROUT
+        else_end
 
         ; Clear screen
         lda # PETSCII_CLR
