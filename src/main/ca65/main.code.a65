@@ -1936,7 +1936,6 @@
             ldx # REDIRECT_OUTPUT_FA
             jsr KERNAL_CHKOUT                                   ; A+ X+
         else_end
-  BREAK1:
         from
             ldx # 0
         loop
