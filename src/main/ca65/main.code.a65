@@ -179,12 +179,6 @@
         tsx
         stx SAVE_S
 
-        ; Save NMI handler
-        lda KERNAL_NMINV_LO
-        sta SAVE_KERNAL_NMINV_LO
-        lda KERNAL_NMINV_HI
-        sta SAVE_KERNAL_NMINV_HI
-
         ; Set border color
         lda CONFIG_BORDER_COLOR
         sta VIC_EC
@@ -219,10 +213,10 @@
         sta WORK_DRIVE
 
         ; PARGV = &ARGV
-        lda     # <ARGV
-        sta     PARGV_LO
-        lda     # >ARGV
-        sta     PARGV_HI
+        lda # <ARGV
+        sta PARGV_LO
+        lda # >ARGV
+        sta PARGV_HI
 
         lda # 0
         ; ARGC = 0. Note: ARGC_HI is always 0 because ARGC_MAX = 10
@@ -238,6 +232,18 @@
 
         ; Set no program loaded
         sta LOADED_PROGRAM_NAME
+
+        ; Save NMI handler
+        lda KERNAL_NMINV_LO
+        sta SAVE_KERNAL_NMINV_LO
+        lda KERNAL_NMINV_HI
+        sta SAVE_KERNAL_NMINV_HI
+
+        ; Set our NMI handler
+        lda # <MY_NMI_HANDLER
+        sta KERNAL_NMINV_LO
+        lda # >MY_NMI_HANDLER
+        sta KERNAL_NMINV_HI
 
         rts
     .endproc
@@ -1978,7 +1984,9 @@
                     else_end
 
                     ; STOP key was pressed
-                    inc NMI_ENTRY_COUNT                         ; Prevent re-entry
+
+                    ; Prevent re-entry
+                    inc NMI_ENTRY_COUNT
 
                     ; Set memory configuration to default: BASIC ROM, IO DEVICES, KERNAL ROM, Datasette output off motor off (in case they got changed).
                     lda # CPU_PORT_DATA_DEFAULT
@@ -2017,7 +2025,7 @@
                     ; Enable interrupts so we can do file I/O.
                     cli
 
-                    ; Close all files 14..1. Why not call KERNAL_CLALL?
+                    ; Close all files 15..1. Why not call KERNAL_CLALL?
                     from
                         ldx # 15
                     loop
