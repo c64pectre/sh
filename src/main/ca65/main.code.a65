@@ -1127,7 +1127,7 @@
             loop
                 lda BINARY_TO_DECIMAL_DECIMAL,x
                 cmp # PETSCII_SPACE
-                beq _end                                        ; break
+                beq _end                                    ; break
                 jsr BUFFERED_OUT_BYTE
             next
                 inx
@@ -1153,17 +1153,9 @@
 
             ; STOP key pressed?
             jsr KERNAL_STOP
-            beq _end                                        ; STOP key was pressed
+            beq _end                                        ; STOP key was pressed -> break
 
-            ; Pause on SHIFT
-            from_loop
-                lda ZPKERNAL_SFDX                               ; $CB Matrix code of key currently being pressed. Values: $00-$3F: Keyboard matrix code. $40: No key is currently pressed. 
-                eor # $40
-                ora KVAR_SHFLAG                                 ; $028D Shift key indicator. Bits: Bit #0: 1 = One or more of left Shift, right Shift or Shift Lock is currently being pressed or locked. Bit #1: 1 = Commodore is currently being pressed. Bit #2: 1 = Control is currently being pressed.
-            next
-                bne _loop
-            end
-
+            jsr PAUSE_ON_SHIFT                              ; A+ X- Y-
         next
             jmp _loop
         end
@@ -1445,6 +1437,12 @@
                 txa
                 jsr BUFFERED_OUT_BYTE
             pla
+
+            ; STOP key pressed?
+            jsr KERNAL_STOP
+            beq _end                                        ; STOP key was pressed -> break
+
+            jsr PAUSE_ON_SHIFT                              ; A+ X- Y-
         next
             beq _loop
         end
@@ -1806,6 +1804,26 @@
     ;;;   DX: Address of souroutine
     .proc JSR_INDIRECT_DX
         jmp [DX]
+        rts
+    .endproc
+
+    ;;; summary: Pause on SHIFT
+    .proc PAUSE_ON_SHIFT
+        from_loop
+            lda ZPKERNAL_SFDX
+                ; $CB Matrix code of key currently being pressed. Values: 
+                ; $00-$3F: Keyboard matrix code
+                ; $40: No key is currently pressed
+            eor # $40
+            ora KVAR_SHFLAG
+            ; $028D Shift key indicator. Bits:
+            ; Bit #0: 1 = One or more of left Shift, right Shift or Shift Lock is currently being pressed or locked.
+            ; Bit #1: 1 = Commodore is currently being pressed.
+            ; Bit #2: 1 = Control is currently being pressed.
+        next
+            bne _loop
+        end
+
         rts
     .endproc
 
