@@ -1151,6 +1151,10 @@
             lda # PETSCII_RETURN
             jsr BUFFERED_OUT_BYTE
 
+            ; STOP key pressed?
+            jsr KERNAL_STOP
+            beq _end                                        ; STOP key was pressed
+
             ; Pause on SHIFT
             from_loop
                 lda ZPKERNAL_SFDX                               ; $CB Matrix code of key currently being pressed. Values: $00-$3F: Keyboard matrix code. $40: No key is currently pressed. 
