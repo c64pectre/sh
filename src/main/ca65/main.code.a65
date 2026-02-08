@@ -1800,74 +1800,69 @@
 ;
 ;region Errors
 
-    ;;; summary: Display error message and reset file I/O
-    ;;; in:
-    ;;;   X: Error number. See main.inc ERROR_NUMBER_*
-    ;;; changed: A+ X+ Y+
-    .proc ERROR
-        ldy MAP_ERROR_NUMBER_TO_RESOURCE_STRING_HI,x
-        lda MAP_ERROR_NUMBER_TO_RESOURCE_STRING_LO,x
-        tax
-        jsr OUT_STRING
-
-        rts    
-    .endproc
-
     .proc ERROR_COMMAND_NOT_FOUND
-        ldx # ERROR_NUMBER_COMMAND_NOT_FOUND
-        jsr ERROR
+        ldx # <RESOURCE_STRING_COMMAND_NOT_FOUND
+        ldy # >RESOURCE_STRING_COMMAND_NOT_FOUND
+        jsr OUT_STRING
 
         rts
     .endproc
 
     .proc ERROR_CANT_OPEN_INPUT_FILE
-        ldx # ERROR_NUMBER_CANT_OPEN_INPUT_FILE
-        jsr ERROR
+        ldx # <RESOURCE_STRING_CANT_OPEN_INPUT_FILE
+        ldy # >RESOURCE_STRING_CANT_OPEN_INPUT_FILE
+        jsr OUT_STRING
 
         rts
     .endproc
 
     .proc ERROR_CANT_OPEN_OUTPUT_FILE
-        ldx # ERROR_NUMBER_CANT_OPEN_OUTPUT_FILE
-        jsr ERROR
+        ldx # <RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
+        ldy # >RESOURCE_STRING_CANT_OPEN_OUTPUT_FILE
+        jsr OUT_STRING
 
         rts
     .endproc
 
     .proc ERROR_PRINTER_NOT_PRESENT
-        ldx # ERROR_NUMBER_PRINTER_NOT_PRESENT
-        jsr ERROR
+        ldx # <RESOURCE_STRING_PRINTER_NOT_PRESENT
+        ldy # >RESOURCE_STRING_PRINTER_NOT_PRESENT
+        jsr OUT_STRING
 
         rts
     .endproc
 
     ;;; summary: Error: Device not present
     .proc ERROR_DEVICE_NOT_PRESENT
-        ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
-        jsr ERROR
+        ldx # <RESOURCE_STRING_DEVICE_NOT_PRESENT
+        ldy # >RESOURCE_STRING_DEVICE_NOT_PRESENT
+        jsr OUT_STRING
 
         rts
     .endproc
 
     ;;; summary: Error: Wrong number of arguments
     .proc ERROR_WRONG_NUMBER_OF_ARGUMENTS
-        ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
-        jsr ERROR
+        ldx # <RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+        ldy # >RESOURCE_STRING_WRONG_NUMBER_OF_ARGUMENTS
+        jsr OUT_STRING
 
         rts
     .endproc
 
     .proc ERROR_DRIVE_NOT_PRESENT
-        ldx # ERROR_NUMBER_DRIVE_NOT_PRESENT
-        jsr ERROR
+        ldx # <RESOURCE_STRING_DRIVE_NOT_PRESENT
+        ldy # >RESOURCE_STRING_DRIVE_NOT_PRESENT
+        jsr OUT_STRING
 
         rts
     .endproc
 
     ;;; summary: Error: File name too long
     .proc ERROR_FILE_NAME_TOO_LONG
-        ldx # ERROR_NUMBER_FILE_NAME_TOO_LOMG
-        jsr ERROR
+        ldx # <RESOURCE_STRING_FILE_NAME_TOO_LONG
+        ldy # >RESOURCE_STRING_FILE_NAME_TOO_LONG
+        jsr OUT_STRING
 
         rts
     .endproc
