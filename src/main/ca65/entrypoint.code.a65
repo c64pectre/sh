@@ -20,9 +20,6 @@
 .proc ENTRYPOINT
     ; Jump table
     jmp MAIN
-    jmp STRING_LENGTH
-    jmp OUT_STRING_AX
-    jmp OUT_ERROR
 .endproc
 
 ;

@@ -50,15 +50,38 @@
 ;
 ;region Memory layout
 
+    ; File name text: Need 19 bytes: drive number (1) + ":" (1) + file name (16) + NUL (1).
     FILE_NAME_TEXT       := AREA_1
     FILE_NAME_TEXT_DRIVE := FILE_NAME_TEXT + 0
     FILE_NAME_TEXT_COLON := FILE_NAME_TEXT + 1
+    FILE_NAME_TEXT_NAME  := FILE_NAME_TEXT + 2
 
+    ; File name text for directory or disk command with drive number and optionally colon plus pattern.
+    ; Max is 40 bytes
+    ; File name maximum length is 16
+    ; Disk name maximum length is 18
+    ; Example:
+    ;   $0                          Directory
+    ;   s0:PATTERN?*                Directory: wildcards allowed
+    ;   s0:PATTERN?*                Scratch (delete): Wildcards allowed, deletes all matches
+    ;   r0:TO=FROM                  Rename: no wildcards allowed
+    ;   c0:TO=0:FROM                Copy: no wildcards allowed
+    ;   c0:TO=0:FROM1,0:FROM2,...   Concatenating copy: no wildcards allowed
+    ;   v0                          Validate
+    ;   i0                          Initialize
+    ;   n0:DISK-NAME,ID             New (full format): required for new unformatted disk
+    ;   n0:DISK-NAME                New (quick format / erase): without comma ID
+    ; Note that commands can be more than one letter, like "m-r"
+    DISK_COMMAND_TEXT              := AREA_1
+    DISK_COMMAND_TEXT_COMMAND      := DISK_COMMAND_TEXT + 0
+    DISK_COMMAND_TEXT_DRIVE        := DISK_COMMAND_TEXT + 1
+    DISK_COMMAND_TEXT_NUL_OR_COLON := DISK_COMMAND_TEXT + 2
+    DISK_COMMAND_TEXT_PATTERN      := DISK_COMMAND_TEXT + 3
+
+    ; Max is 35 bytes
     DISK_STATUS_TEXT        := AREA_1
     DISK_STATUS_TEXT_CODE_0 := DISK_STATUS_TEXT + 0
     DISK_STATUS_TEXT_CODE_1 := DISK_STATUS_TEXT + 1
-
-    DISK_COMMAND_TEXT := AREA_1
 
     BUFFERED_OUT_BUFFER      := AREA_2
     BUFFERED_OUT_BUFFER_LAST := AREA_2_LAST
@@ -216,9 +239,9 @@
         sta WORK_DRIVE
 
         ; PARGV = &ARGV
-        lda # <ARGV
+        lda # < ARGV
         sta PARGV_LO
-        lda # >ARGV
+        lda # > ARGV
         sta PARGV_HI
 
         lda # 0                                             ; A = 0 = FALSE = PETSCVII_NUL
@@ -231,8 +254,8 @@
         sta NMI_ENTRY_COUNT
 
         ; Redirect input & output inactive
-        sta REDIRECT_INPUT_ACTIVE
-        sta REDIRECT_OUTPUT_ACTIVE
+        sta REDIRECT_INPUT_ACTIVE                           ; FALSE
+        sta REDIRECT_OUTPUT_ACTIVE                          ; FALSE
 
         ; Set no program loaded
         sta LOADED_PROGRAM_NAME
@@ -259,7 +282,7 @@
 
         from_loop
             jsr SHOW_PROMPT
-            jsr IN_READ_LINE_TO_INPUT_TEXT
+            jsr IN_LINE_TO_INPUT_TEXT
             jsr PROCESS_INPUT_TEXT
         next
             jmp _loop
@@ -281,22 +304,15 @@
     ;;; summary: Read line from input (presumably keyboard)
     ;;; out:
     ;;;   INPUT_TEXT: One line of text, PETSCII_RETURN replaced with PETSCII_NUL.
-    .proc IN_READ_LINE_TO_INPUT_TEXT
-        from
-            ldy # 0
-        loop
-            jsr KERNAL_CHRIN                                    ; A+ X+ Y-
-            cmp # PETSCII_RETURN
-            beq _end                                            ; break
-            sta INPUT_TEXT,y
-        next
-            iny
-            bne _loop
-        end
-        
+    .proc IN_LINE_TO_INPUT_TEXT
+        lda # < INPUT_TEXT
+        sta AL
+        lda # > INPUT_TEXT
+        sta AH
+        jsr IN_LINE
+
+        lda # PETSCII_RETURN
         jsr KERNAL_CHROUT
-        lda # PETSCII_NUL
-        sta INPUT_TEXT,y
 
         rts
     .endproc
@@ -306,7 +322,7 @@
     ;;;   INPUT_TEXT: Input text, nul terminated
     ;;; changed: A+ X+ Y+
     .proc PROCESS_INPUT_TEXT
-        ; Y: Pointer in ARGV
+        ; Y: Offset in ARGV (Y = 2 * ARGC_LO)
         ldy # 0
         sty ARGC_LO
 
@@ -326,12 +342,12 @@
             beq OUTER::_loop
             cmp # PETSCII_NO_BREAK_SPACE
             beq OUTER::_loop
-                
+
             ; Redirect input from file?
             cmp # PETSCII_LESS_THAN_SIGN
             if_eq_then
                 ; Yes
-                jsr REDIRECT_INPUT_FROM_FILE                    ; 
+                jsr REDIRECT_INPUT_FROM_FILE
                 bcc OUTER::_loop                                ; OK -> continue
 
                 ; Error redirecting input from file
@@ -418,13 +434,13 @@
         lda ARGC_LO
         if_ne_then
             ; We have got arguments
-            ; BX := ARGV[0]
+            ; AX := ARGV[0]
             lda ARGV_0_LO
-            sta BL
+            sta AL
             lda ARGV_0_HI
-            sta BH
+            sta AH
             ldy # 0
-            lda [BX],y
+            lda [AX],y
             ; Argument 0 not empty?
             if_ne_then
                 jsr TRY_BUILT_IN_COMMAND
@@ -445,7 +461,8 @@
     .endproc
 
     ;;; summary: Try built-in command
-    ;;; in: 
+    ;;; in:
+    ;;;   AX = ARGV[0]: Command
     .proc TRY_BUILT_IN_COMMAND
         jsr MAP_COMMAND_NAME_TO_COMMAND_NUMBER                  ; X = command number if Z=1
         if_ne_then
@@ -464,29 +481,38 @@
 
     ;;; summary: Load program with, if not already done so.
     ;;; in:
-    ;;;   BX: Name of program to load.
+    ;;;   AX: Name of program to load.
     ;;; out:
     ;;;   C: 0=OK 1=FAIL
-    ;;; changed: A+ X? Y? AX+
+    ;;; changed: A+ X? Y? BX+
     .proc LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
+        jsr STRING_LENGTH_AX
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_ge_then
+            ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+            jsr OUT_ERROR
+            rts
+        else_end
+
+        ; Already loaded?
         lda # <LOADED_PROGRAM_NAME
-        sta AL
+        sta BL
         lda # >LOADED_PROGRAM_NAME
-        sta AH
+        sta BH
         jsr STRING_COMPARE
         if_eq_then
             clc                                                 ; OK
-
             rts
         else_end
 
         jsr LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
+
         rts
     .endproc
 
     ;;; summary: Load program from work disk or else from system disk
     ;;; in:
-    ;;;   BX: Name of program to load.
+    ;;;   AX: Name of program to load.
     ;;; out:
     ;;;   C: 0=OK 1=FAIL
     .proc LOAD_PROGRAM_FROM_WORK_OR_SYS_DISK
@@ -504,24 +530,18 @@
                 ; Load from system disk failed too.
                 ldx # ERROR_NUMBER_COMMAND_NOT_FOUND
                 jsr OUT_ERROR
-                sec                                             ; FAIL
-
                 rts
             else_end
         else_end
 
         ; Save name of loaded program.
-        ; notes: We know program name is max 16 characters + 1 for nul
-        from
-            ldy # 0
-        loop
-            lda [BX],y
-            sta LOADED_PROGRAM_NAME,y
-        next
-            iny
-            cmp # PETSCII_NUL
-            bne _loop
-        end
+        ; notes: We know program name is max 16 characters + 1 for NUL
+        lda # <LOADED_PROGRAM_NAME
+        sta BL
+        lda # >LOADED_PROGRAM_NAME
+        sta BH
+        jsr STRING_COPY_AX_TO_BX
+
         clc                                                     ; OK
 
         rts
@@ -605,46 +625,44 @@
     ;;; in:
     ;;;   X: Device Address (DA)
     ;;;   Y: Drive Number (DN)
-    ;;;   BX:   File name
-    ;;; changed: A+ X+ Y+ AL+
+    ;;;   AX:   File name
+    ;;; changed: A+ X+ Y+ BX+ CL+
     .proc LOAD_PROGRAM
-        stx AL                                              ; AL = X = DA   
+        ; DA
+        stx CL                                              ; CL = X = DA   
+
+        ; ""
+        jsr INIT_AREA_1_BX                                  ; A+ X- Y-
+
+        ; Drive Number
         tya
         clc
         adc # PETSCII_DIGIT_ZERO
-        sta FILE_NAME_TEXT_DRIVE
+        jsr STRING_APPEND_CHAR_A_TO_BX
+
+        ; ":"
         lda # PETSCII_COLON
-        sta FILE_NAME_TEXT_COLON
-        from
-            ldy # 0
-            ldx # FILE_NAME_TEXT_COLON_OFFSET_NAME          ; 2
-        loop
-            lda [BX],y
-            beq _end                                        ; NUL -> break
-            sta  FILE_NAME_TEXT,x
-        next
-            iny
-            inx
-            bne _loop
-        end
-    
+        jsr STRING_APPEND_CHAR_A_TO_BX
+
+        ; File name
+        jsr STRING_APPEND_AX_TO_BX
+
         ; Add ".sh"
         lda # PETSCII_FULL_STOP
-        sta FILE_NAME_TEXT,x
-        inx
+        jsr STRING_APPEND_CHAR_A_TO_BX
         lda # PETSCII_LATIN_LETTER_S
-        sta FILE_NAME_TEXT,x
-        inx
+        jsr STRING_APPEND_CHAR_A_TO_BX
         lda # PETSCII_LATIN_LETTER_H
-        sta FILE_NAME_TEXT,x
-        inx                                                 ; X = FILE_NAME_TEXT.LENGTH
-        txa                                                 ; A = X = FILE_NAME_TEXT.LENGTH
-        ldx # <FILE_NAME_TEXT
-        ldy # >FILE_NAME_TEXT
+        jsr STRING_APPEND_CHAR_A_TO_BX
+
+        jsr STRING_LENGTH_AX
+        tya
+        ldx BL
+        ldy BH
         jsr KERNAL_SETNAM
-        ldx AL                                              ; X = AL = DA
-        lda # FILE_FA                                       ; A = FILE_FA = FILE_SA
-        tay                                                 ; Y = FILE_SA
+        ldx CL
+        lda # FILE_FA_SA
+        tay
         jsr KERNAL_SETLFS
         lda # KERNAL_LOAD_LOAD
         jsr KERNAL_LOAD
@@ -656,30 +674,15 @@
         cmp # KERNAL_ERROR_DEVICE_NOT_PRESENT
         if_eq_then
             ; Device not present
+            ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
             sec
             rts
         else_end
 
         ; Device present. (Attempt to) read (but not show) disk status.
-        lda # DISK_COMMAND_FA                               ; DISK_COMMAND_FA = DISK_COMMAND_SA
-        ldx AL                                              ; X = AL = DA
-        tay
-        jsr KERNAL_SETLFS
-        lda # 0                                             ; No name
-        jsr KERNAL_SETNAM
-        jsr KERNAL_OPEN
-        if_cc_then
-            ldx # DISK_COMMAND_FA
-            jsr KERNAL_CHKIN
-            if_cc_then
-                from_loop
-                    jsr KERNAL_CHRIN
-                next
-                    cmp # PETSCII_RETURN
-                    bne _loop
-                end
-            else_end
-        else_end
+
+        ldx CL                                              ; X = CL = DA
+        jsr READ_DISK_STATUS
 
         lda # DISK_COMMAND_FA
         jsr KERNAL_CLOSE
@@ -723,38 +726,33 @@
     ;;;   C: 0=OK 1=FAIL
     ;;; changed: A+ X- Y+ BX+
     ;;; notes: Need to preserve X & Y for PROCESS_INPUT_TEXT
-    .proc REDIRECT_INPUT_FROM_FILE
+     .proc REDIRECT_INPUT_FROM_FILE
         bit REDIRECT_INPUT_ACTIVE
-        if_mi_then
+        if_mi_then                                              ; TRUE
             ; Redirect input already active.
             sec                                                 ; FAIL
             rts
         else_end
 
         sty BH
-            jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ Y=FILE_NAME_TEXT.LENGTH
+            jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ Y+ AX+
             if_cs_then
                 rts                                             ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore Y.
             else_end
 
             stx BL
-                tya
-                ldx # <FILE_NAME_TEXT
-                ldy # >FILE_NAME_TEXT
-                jsr KERNAL_SETNAM
                 lda # REDIRECT_INPUT_FA
                 ldx WORK_DEVICE
                 ldy # REDIRECT_INPUT_SA
-                jsr KERNAL_SETLFS
-                jsr KERNAL_OPEN
+                jsr OPEN_FILE_AX
                 if_cs_then
-                    rts                                             ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore X & Y.
+                    rts                                         ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore X & Y.
                 else_end
 
-                lda WORK_DEVICE
+                ldx WORK_DEVICE
                 jsr PROCESS_DISK_STATUS
                 if_cc_then
-                    dec REDIRECT_INPUT_ACTIVE               ; REDIRECT_INPUT_ACTIVE := TRUE
+                    dec REDIRECT_INPUT_ACTIVE                   ; TRUE
                 else_end
             ldx BL
         ldy BH
@@ -767,59 +765,43 @@
     ;;; notes: Need to preserve X & Y for PROCESS_INPUT_TEXT
     .proc REDIRECT_OUTPUT_TO_FILE
         bit REDIRECT_OUTPUT_ACTIVE
-        if_mi_then
+        if_mi_then                                              ; TRUE
             ; Redirect output already active.
             sec                                                 ; FAIL
             rts
         else_end
 
         sty BH
-            jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ / X=Position in FILE_NAME_TEXT / Y=FILE_NAME_TEXT.LENGTH
+            jsr GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE    ; A+ X+ Y+ AX+
             if_cs_then
                 ; FAIL
                 rts                                             ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore Y.
             else_end
 
             stx BL
-                dey
-                dey
-                lda FILE_NAME_TEXT,y
-                iny
-                iny
-                cmp # PETSCII_COMMA
-                if_ne_then
-                    lda # PETSCII_COMMA
-                    sta FILE_NAME_TEXT,y
-                    iny
-                    lda # PETSCII_LATIN_LETTER_S
-                    sta FILE_NAME_TEXT,y
-                    iny
-                else_end
-
+                ; Append ",s,w"
                 lda # PETSCII_COMMA
-                sta FILE_NAME_TEXT,y
-                iny
+                jsr STRING_APPEND_CHAR_A_TO_AX
+                lda # PETSCII_LATIN_LETTER_S
+                jsr STRING_APPEND_CHAR_A_TO_AX
+                lda # PETSCII_COMMA
+                jsr STRING_APPEND_CHAR_A_TO_AX
                 lda # PETSCII_LATIN_LETTER_W
-                sta FILE_NAME_TEXT,y
-                iny
-                tya
-                ldx # <FILE_NAME_TEXT
-                ldy # >FILE_NAME_TEXT
-                jsr KERNAL_SETNAM                               ; A=NAME.LENGTH X=<NAME Y=>NAME
+                jsr STRING_APPEND_CHAR_A_TO_AX
+
                 lda # REDIRECT_OUTPUT_FA
                 ldx WORK_DEVICE
                 ldy # REDIRECT_OUTPUT_FILE_SA
-                jsr KERNAL_SETLFS                               ; A=FA X=DA Y=SA
-                jsr KERNAL_OPEN
+                jsr OPEN_FILE_AX
                 if_cs_then
                     ; FAIL
-                    rts                                     ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore  X & Y.
+                    rts                                         ; Caller (PROCESS_INPUT_TEXT) cancels further processing, so no need to restore  X & Y.
                 else_end
 
-                lda WORK_DEVICE
+                ldx WORK_DEVICE
                 jsr PROCESS_DISK_STATUS
                 if_cc_then
-                    dec REDIRECT_OUTPUT_ACTIVE              ; REDIRECT_OUTPUT_ACTIVE := TRUE
+                    dec REDIRECT_OUTPUT_ACTIVE              ; TRUE
                 else_end
             ldx BL
         ldy BH
@@ -829,40 +811,13 @@
 
     ;;; summary: Read disk status of device `A` into `DISK_STATUS_TEXT`, printing if not equal to "00"
     ;;; in:
-    ;;;   A: Device Address (DA)
+    ;;;   X: Device Address (DA)
     ;;; out:
     ;;;   DISK_STATUS_TEXT: Disk status that has been read
     ;;;   C: 0=OK 1=FAIL
     ;;; changed: A+ X+ Y+
     .proc PROCESS_DISK_STATUS
-        pha
-            lda # 0
-            jsr KERNAL_SETNAM                                   ; No name
-        pla
-        tax                                                     ; X = A' = DA
-        lda # DISK_COMMAND_FA                                   ; A = DISK_COMMAND_FA = DISK_COMMAND_SA
-        tay                                                     ; Y = DISK_COMMAND_SA
-        jsr KERNAL_SETLFS                                       ; A=FA X=DA Y=SA
-        jsr KERNAL_OPEN
-        ldx # DISK_COMMAND_FA
-        jsr KERNAL_CHKIN
-        from
-            ldy # 0
-        loop
-            jsr KERNAL_CHRIN
-            sta DISK_STATUS_TEXT,y
-            iny
-        next
-            cmp # PETSCII_RETURN
-            bne _loop
-        end
-
-        ; Append NUL
-        iny
-        lda # PETSCII_NUL
-        sta DISK_STATUS_TEXT,y
-
-        jsr KERNAL_CLRCHN
+        jsr READ_DISK_STATUS
 
         if
             lda DISK_STATUS_TEXT_CODE_0
@@ -874,9 +829,11 @@
         then
             ; ! (DISK_STATUS_TEXT_CODE_0 = "0" & DISK_STATUS_TEXT_CODE_1 = "0")
             ; Error
-            ldx # <DISK_STATUS_TEXT
-            ldy # >DISK_STATUS_TEXT
+            ldx # < DISK_STATUS_TEXT
+            ldy # > DISK_STATUS_TEXT
             jsr OUT_STRING_XY
+            lda # PETSCII_RETURN
+            jsr KERNAL_CHROUT
             sec                                             ; FAIL
             rts
         else_end
@@ -886,12 +843,38 @@
         rts
     .endproc
 
+    ;;; summary: Read disk status of device `A` into `DISK_STATUS_TEXT`.
+    ;;; in:
+    ;;;   X: Device Address (DA)
+    ;;; out:
+    ;;;   DISK_STATUS_TEXT: Disk status that has been read
+    ;;;   C: 0=OK 1=FAIL
+    ;;; changed: A+ X+ Y+
+    .proc READ_DISK_STATUS
+        ; AREA_1 = DISK_STATUS_TEXT
+        jsr INIT_AREA_1_AX                                  ; A+ X- Y-
+
+        lda # DISK_COMMAND_FA_SA
+        tay
+        jsr OPEN_FILE_AX
+
+        ldx # DISK_COMMAND_FA
+        jsr KERNAL_CHKIN
+
+        jsr IN_LINE
+
+        jsr KERNAL_CLRCHN
+
+        rts
+    .endproc
+
+
     ;;; summary: Get (extract) file name from `INPUT_TEXT` from position `X`, prefixed with work drive and colon.
     ;;; in:
     ;;;   INPUT_TEXT: Input text
     ;;;   X: Starting position
     ;;; out:
-    ;;;   FILE_NAME_TEXT: Extracted file name, prefixed with work drive and colon
+    ;;;   AX = FILE_NAME_TEXT: Extracted file name, prefixed with work drive and colon, nul-terminated
     ;;;   X: Position of last character of extracted file name in `INPUT_TEXT`
     ;;;   Y: FILE_NAME_TEXT.LENGTH
     ;;;   C: 0=OK 1=FAIL
@@ -899,6 +882,17 @@
     ;;; notes:
     ;;;   TODO Quoted file name is not possible
     .proc GET_FILE_NAME_FROM_INPUT_TEXT_FOR_WORK_DRIVE
+        ; AX = AREA_1 = FILE_NAME_TEXT = ""
+        jsr INIT_AREA_1_AX
+
+        clc
+        lda WORK_DRIVE
+        adc # PETSCII_DIGIT_ZERO
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        lda # PETSCII_COLON
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
         ; Skip any space and no-break space
         from_loop
             inx
@@ -915,25 +909,15 @@
             beq _loop
         end
 
-        clc
-        lda WORK_DRIVE
-        adc # PETSCII_DIGIT_ZERO
-        sta FILE_NAME_TEXT_DRIVE                                ; FILE_NAME[0] := WORK_DEVICE.TO_DECIMAL_CHAR
-        lda # PETSCII_COLON
-        sta FILE_NAME_TEXT_COLON                                ; FILE_NAME[1] := ":"
-
-        from
-            ldy # 2
-        loop
+        from_loop
             lda INPUT_TEXT,x
             beq _end                                            ; break
             cmp # PETSCII_SPACE
             beq _end                                            ; break
             cmp # PETSCII_NO_BREAK_SPACE
             beq _end
-            sta FILE_NAME_TEXT,y
+            jsr STRING_APPEND_CHAR_A_TO_AX
         next
-            iny
             inx
             bne _loop                                           ; bra
         end
@@ -959,13 +943,11 @@
 
         stx BL
         sty BH
+            jsr INIT_AREA_1_AX
             lda # REDIRECT_OUTPUT_FA
             ldx # REDIRECT_OUTPUT_PRINTER_DA
             ldy # REDIRECT_OUTPUT_PRINTER_SA
-            jsr KERNAL_SETLFS
-            lda # 0                                         ; No name
-            jsr KERNAL_SETNAM
-            jsr KERNAL_OPEN
+            jsr OPEN_FILE_AX
             if_cc_then
                 ldx # REDIRECT_OUTPUT_FA
                 jsr KERNAL_CHKOUT
@@ -975,7 +957,7 @@
                 jsr KERNAL_CLRCHN
             plp
             if_cc_then
-                dec REDIRECT_OUTPUT_ACTIVE                  ; REDIRECT_OUTPUT_ACTIVE := TRUE
+                dec REDIRECT_OUTPUT_ACTIVE                  ; TRUE
             else_end
         ldy BH
         ldx BL
@@ -1010,8 +992,8 @@
         tya
         adc # PETSCII_DIGIT_ZERO
         sta STRING_DRIVE_NUMBER_0
-        ldx # <STRING_DEVICE
-        ldy # >STRING_DEVICE
+        ldx # < STRING_DEVICE
+        ldy # > STRING_DEVICE
         jsr OUT_STRING_XY
 
         rts
@@ -1067,7 +1049,7 @@
                 jmp _catch                                  ; throw
             else_end
 
-            ; Get drive number from ARGV[1] into STRING_DRIVE_NUMBER_0
+            ; Get drive number from ARGV[2]
             lda ARGV_2_LO
             sta AL
             lda ARGV_2_HI
@@ -1104,15 +1086,14 @@
             ; BL: Device number
             ; BH: Drive number
             ; Test if device present by sending Memory Read command
+            lda # < RESOURCE_STRING_DISK_COMMAND_MEMORY_READ
+            sta AL
+            lda # > RESOURCE_STRING_DISK_COMMAND_MEMORY_READ
+            sta AH
             lda # DISK_COMMAND_FA                           ; DISK_COMMAND_FA = DISK_COMMAND_SA
             ldx BL
             tay
-            jsr KERNAL_SETLFS
-            ldx # <MR_TEXT
-            ldy # >MR_TEXT
-            lda # MR_TEXT_LENGTH
-            jsr KERNAL_SETNAM
-            jsr KERNAL_OPEN
+            jsr OPEN_FILE_AX
             php
                 lda # DISK_COMMAND_FA
                 jsr KERNAL_CLOSE
@@ -1161,9 +1142,9 @@
         else_end
 
         lda ARGV_1_LO
-        sta BL
+        sta AL
         lda ARGV_1_HI
-        sta BH
+        sta AH
         jsr LOAD_PROGRAM_IF_NOT_ALREADY_LOADED
 
         rts
@@ -1187,89 +1168,84 @@
     ;;; in:
     ;;;   X: Device address (8-31) DA
     ;;;   Y: Drive number (0-1) DN
-    ;;; changed: A+ X+ Y+ AX+ BX+
+    ;;; changed: A+ X+ Y+ AX+ BX+ CX+
     .proc CMD_DIR
-        stx BL                                                  ; BL = DA
-        sty BH                                                  ; BH = DN
+        lda ARGC_LO                                         ; ARGC_LO >= 1
+        cmp # 3
+        if_ge_then
+            ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            jsr OUT_ERROR
+            rts
+        else_end
 
+        stx CL                                              ; CL = DA
+        sty CH                                              ; CH = DN
+
+        ; ""
+        jsr INIT_AREA_1_AX                                  ; A+ X- Y-
+
+        ; += "$"
         lda # PETSCII_DOLLAR
-        sta FILE_NAME_TEXT + 0
+        jsr STRING_APPEND_CHAR_A_TO_AX                      ; A+ X- Y+
 
-       lda BH                                                   ; A = BH = DN
+        ; += Drive Number ("0" or "1")
+        lda CH                                              ; A = CH = DN
         clc
         adc # PETSCII_DIGIT_ZERO
-        sta FILE_NAME_TEXT + 1
+        jsr STRING_APPEND_CHAR_A_TO_AX                      ; A+ X- Y+
 
-        ldx # 2
-        lda ARGC_LO
+        lda ARGC_LO                                         ; ARGC_LO >= 1
         cmp # 2
         if_eq_then
+            ; += ":"
             lda # PETSCII_COLON
-            sta FILE_NAME_TEXT,x
-            inx
+            jsr STRING_APPEND_CHAR_A_TO_AX                  ; A+ X- Y+
+
+            ; ? ARGV[1].LENGTH > FILE_NAME_MAX_LENGTH
             lda ARGV_1_LO
-            sta AL
+            sta BL
             lda ARGV_1_HI
-            sta AH
-            from
-                ldy # 0
-            loop
-                lda [AX],y
-                beq _end                                    ; break
-                sta FILE_NAME_TEXT,x
-            next
-                iny
-                cpy # FILE_NAME_MAX_LENGTH + 1
-                if_eq_then
-                    ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
-                    jsr OUT_ERROR
-                    rts
-                else_end
-
-                inx
-                bne _loop                                   ; bra
-            end
-
-            jmp _end
-        else
-            cmp # 1
-            if_ne_then
-                pla
-                ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
+            sta BH
+            jsr STRING_LENGTH_BX
+            cpy # FILE_NAME_MAX_LENGTH + 1
+            if_ge_then
+                ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
                 jsr OUT_ERROR
                 rts
             else_end
-        end
 
-        txa                                                 ; A = DIR_NAME_DOLLAR.LENGTH
-        ldx # <FILE_NAME_TEXT
-        ldy # >FILE_NAME_TEXT
-        jsr KERNAL_SETNAM
-        ldx BL                                                  ; X = BL = DA
+            ; += ARGV[1]
+            jsr STRING_APPEND_BX_TO_AX
+        else_end
+
+        ldx CL                                                  ; X = CL = DA
         lda # FILE_FA
-        ldy # 0
-        jsr KERNAL_SETLFS
-        jsr KERNAL_OPEN
+        ldy # 0                                                 ; Load indicator
+        jsr OPEN_FILE_AX                                        ; A=FA X=DA Y=0=LOAD AX=FILENAME
         if_cs_then
-            pla
             ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
             jsr OUT_ERROR
             rts
         else_end
 
-        lda BL                                                  ; A = BL = DA
+        ldx CL                                                  ; A = CL = DA
         jsr PROCESS_DISK_STATUS
         if_cs_then
             rts
         else_end
 
         jsr BUFFERED_OUT_INIT
+
         ldx # FILE_FA
         jsr KERNAL_CHKIN
+
+        ; Load address
         jsr KERNAL_CHRIN
         jsr KERNAL_CHRIN
+
         lda # PETSCII_RETURN
         jsr BUFFERED_OUT_BYTE
+
         ; Clear serial status
         lda # KERNAL_OK                                     ; 0
         sta SAVE_KERNAL_READST
@@ -1321,7 +1297,10 @@
             jsr KERNAL_STOP
             beq _end                                        ; STOP key was pressed -> break
 
-            jsr PAUSE_ON_SHIFT                              ; A+ X- Y-
+            bit REDIRECT_OUTPUT_ACTIVE
+            if_pl_then
+                jsr PAUSE_ON_SHIFT                          ; A+ X- Y-
+            else_end
         next
             jmp _loop
         end
@@ -1344,29 +1323,30 @@
         if_ne_then
             ldx # ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS
             jsr OUT_ERROR
-
             rts
         else_end
+
+        ; No name (AREA_1 = FILE_NAME_TEXT)
+        jsr INIT_AREA_1_AX
+
+        lda # DISK_COMMAND_FA_SA
+        tay
+        ldx WORK_DEVICE
+        jsr OPEN_FILE_AX
+
+        ldx # DISK_COMMAND_FA
+        jsr KERNAL_CHKOUT
 
         lda ARGV_1_LO
         sta AL
         lda ARGV_1_HI
         sta AH
-        lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
-        ldx WORK_DEVICE
-        tay
-        jsr KERNAL_SETLFS
-        lda # 0                                                 ; No name
-        jsr KERNAL_SETNAM
-        jsr KERNAL_OPEN
-        ldx # DISK_COMMAND_FA
-        jsr KERNAL_CHKOUT
-
         jsr OUT_STRING_AX
 
         lda # PETSCII_RETURN
         jsr KERNAL_CHROUT
-        lda WORK_DEVICE
+
+        ldx WORK_DEVICE
         jsr PROCESS_DISK_STATUS
 
         rts
@@ -1383,61 +1363,53 @@
             rts
         else_end
 
-        ; s
+        ; AX = &AREA_1 = &DISK_COMMAND_TEXT = ""
+        jsr INIT_AREA_1_AX
+
+        ; AX += "s"
         lda # PETSCII_LATIN_LETTER_S
-        sta DISK_COMMAND_TEXT + 0
-        ; Drive
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; AX += Drive Number
         clc
         lda WORK_DRIVE
         adc # PETSCII_DIGIT_ZERO
-        sta DISK_COMMAND_TEXT + 1
-        ; :
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; AX += ":"
         lda # PETSCII_COLON
-        sta DISK_COMMAND_TEXT + 2
+        jsr STRING_APPEND_CHAR_A_TO_AX
 
-        from
-            lda ARGV_1_LO
-            sta AL
-            lda ARGV_1_HI
-            sta AH
-            ldx # 3
-            ldy # 0
-        loop
-            lda [AX],y
-            beq _end                                            ; break
-            sta DISK_COMMAND_TEXT,x
-            iny
-            cpy # FILE_NAME_MAX_LENGTH + 1
-            if_eq_then
-                ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
-                jsr OUT_ERROR
-                rts
-            else_end
-        next
-            inx
-            bne _loop                                           ; bra
-        end
+        ; AX += ARGV[1]
+        lda ARGV_1_LO
+        sta BL
+        lda ARGV_1_HI
+        sta BH
+        jsr STRING_LENGTH_BX
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_eq_then
+            ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+            jsr OUT_ERROR
+            rts
+        else_end
 
+        jsr STRING_APPEND_BX_TO_AX
+
+        ; AX += RETURN
         lda # PETSCII_RETURN
-        sta DISK_COMMAND_TEXT,x
-        inx
-        txa
-        ; A = DISK_COMMAND_TEXT.LENGTH
-        ldx # <DISK_COMMAND_TEXT
-        ldy # >DISK_COMMAND_TEXT
-        jsr KERNAL_SETNAM
-        lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        lda # DISK_COMMAND_FA_SA
         tay
         ldx WORK_DEVICE
-        jsr KERNAL_SETLFS
-        jsr KERNAL_OPEN
+        jsr OPEN_FILE_AX
         if_cs_then
             ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
             jsr OUT_ERROR
             rts
         else_end
 
-        lda WORK_DEVICE
+        ldx WORK_DEVICE
         jsr PROCESS_DISK_STATUS
 
         rts
@@ -1454,97 +1426,80 @@
             rts
         else_end
 
-        lda # PETSCII_LATIN_LETTER_R
-        sta DISK_COMMAND_TEXT + 0
+        ; AX = &AREA_1 = &DISK_COMMAND_TEXT = ""
+        jsr INIT_AREA_1_AX
 
+        ; AX += "r"
+        lda # PETSCII_LATIN_LETTER_R
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; AX += Drive Number
         clc
         lda WORK_DRIVE
         adc # PETSCII_DIGIT_ZERO
-        sta DISK_COMMAND_TEXT + 1
-        pha
-            lda # PETSCII_COLON
-            sta DISK_COMMAND_TEXT + 2
+        jsr STRING_APPEND_CHAR_A_TO_AX
 
-            from
-                lda ARGV_2_LO
-                sta AL
-                lda ARGV_2_HI
-                sta AH
-                ldx # 3
-                ldy # 0
-            loop
-                lda [AX],y
-                beq _end                                        ; break
-                sta DISK_COMMAND_TEXT,x
-                iny
-                cpy # FILE_NAME_MAX_LENGTH + 1
-                if_eq_then
-                    ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
-                    jsr OUT_ERROR
-                    rts
-                else_end
-            next
-                inx
-                bne _loop                                       ; bra
-            end
-
-            lda # PETSCII_EQUALS_SIGN
-            sta DISK_COMMAND_TEXT,x
-            inx
-        pla
-        sta DISK_COMMAND_TEXT,x
-        inx
+        ; AX += ":"
         lda # PETSCII_COLON
-        sta DISK_COMMAND_TEXT,x
-        inx
-        from
-            lda ARGV_1_LO
-            sta AL
-            lda ARGV_1_HI
-            sta AH
-            ldy # 0
-        loop
-            lda [AX],y
-            beq _end                                            ; break
-            sta DISK_COMMAND_TEXT,x
-            iny
-            cpy # FILE_NAME_MAX_LENGTH + 1
-            if_eq_then
-                ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
-                jsr OUT_ERROR
-                rts
-            else_end
-        next
-            inx
-            bne _loop
-        end
+        jsr STRING_APPEND_CHAR_A_TO_AX
 
+        ; AX += ARGV[2]
+        lda ARGV_2_LO
+        sta BL
+        lda ARGV_2_HI
+        sta BH
+        jsr STRING_LENGTH_BX
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_ge_then
+            ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+            jsr OUT_ERROR
+            rts
+        else_end
+
+        jsr STRING_APPEND_BX_TO_AX
+
+        ; AX += "="
+        lda # PETSCII_EQUALS_SIGN
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; AX += FROM
+
+        lda ARGV_1_LO
+        sta BL
+        lda ARGV_1_HI
+        sta BH
+        jsr STRING_LENGTH_BX
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_ge_then
+            ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+            jsr OUT_ERROR
+            rts
+        else_end
+
+        jsr STRING_APPEND_BX_TO_AX
+
+        ; AX += RETURN
         lda # PETSCII_RETURN
-        sta DISK_COMMAND_TEXT,x
-        inx
-        txa
-        ldx # <DISK_COMMAND_TEXT
-        ldy # >DISK_COMMAND_TEXT
-        jsr KERNAL_SETNAM
-        lda # DISK_COMMAND_FA                                   ; DISK_COMMAND_FA = DISK_COMMAND_SA
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        lda # DISK_COMMAND_FA_SA
         tay
         ldx WORK_DEVICE
-        jsr KERNAL_SETLFS
-        jsr KERNAL_OPEN
+        jsr OPEN_FILE_AX
         if_cs_then
             ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
             jsr OUT_ERROR
             rts
         else_end
 
-        lda WORK_DEVICE
+        ldx WORK_DEVICE
         jsr PROCESS_DISK_STATUS
 
         rts
     .endproc
 
     ;;; summary: Print (cat) file
-    ;;; changed: A+ X+ Y+
+    ;;; changed: A+ X+ Y+ AX+ BX+ DX+
     .proc CMD_PR
         lda ARGC_LO
         cmp # 2
@@ -1554,31 +1509,48 @@
             rts
         else_end
 
+        ; AX = &AREA_1 = &DISK_COMMAND_TEXT = ""
+        jsr INIT_AREA_1_AX
         ; AX := ARGV[1]
+
+        ; AX += Drive Number
+        clc
+        lda WORK_DRIVE
+        adc # PETSCII_DIGIT_ZERO
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; AX += ":"
+        lda # PETSCII_COLON
+        jsr STRING_APPEND_CHAR_A_TO_AX
+
+        ; BX := ARGV[1]
         lda ARGV_1_LO
-        sta AL
+        sta BL
         lda ARGV_1_HI
-        sta AH
+        sta BH
 
-        ; Y := AX.LENGTH = ARGV[1].LENGTH
-        jsr STRING_LENGTH                                   ; Y = AX.LENGTH
+        ; Y := BX.LENGTH = ARGV[1].LENGTH
+        jsr STRING_LENGTH_BX
+        cpy # FILE_NAME_MAX_LENGTH + 1
+        if_ge_then
+            ldx # ERROR_NUMBER_FILE_NAME_TOO_LONG
+            jsr OUT_ERROR
+            rts
+        else_end
 
-        tya
-        ldx AL
-        ldy AH
-        jsr KERNAL_SETNAM
+        jsr STRING_APPEND_BX_TO_AX                          ; A+ X- Y+ DX+
+
         lda # FILE_FA                                       ; A = FILE_FA = FILE_SA
-        ldx WORK_DEVICE
         tay                                                 ; Y = FILE_SA
-        jsr KERNAL_SETLFS
-        jsr KERNAL_OPEN
+        ldx WORK_DEVICE
+        jsr OPEN_FILE_AX
         if_cs_then
             ldx # ERROR_NUMBER_DEVICE_NOT_PRESENT
             jsr OUT_ERROR
             rts
         else_end
 
-        lda WORK_DEVICE
+        ldx WORK_DEVICE
         jsr PROCESS_DISK_STATUS
         if_cs_then
             rts
@@ -1641,7 +1613,7 @@
         rts
     .endproc
 
-    ;;;summary: Show or change system disk
+    ;;; summary: Show or change system disk
     .proc CMD_SYS
         lda ARGC_LO
         cmp # 1
@@ -1682,8 +1654,7 @@
     ;;; out:
     ;;;   Y: Length of string
     ;;; changed: A+ X- Y+
-    .proc STRING_LENGTH
-        ; Y := ARGV[1].LENGTH
+    .proc STRING_LENGTH_AX
         from
             ldy # 0
         loop
@@ -1692,6 +1663,45 @@
         next
             iny
             bne _loop                                           ; bra
+        end
+
+        rts
+    .endproc
+
+    ;;; summary: String length
+    ;;; in:
+    ;;;   BX: String, nul-terminated
+    ;;; out:
+    ;;;   Y: Length of string
+    ;;; changed: A+ X- Y+
+    .proc STRING_LENGTH_BX
+        from
+            ldy # 0
+        loop
+            lda [BX],y
+            beq _end                                            ; break
+        next
+            iny
+            bne _loop                                           ; bra
+        end
+
+        rts
+    .endproc
+
+    ;;; summary: String copy
+    ;;; in:
+    ;;;   AX: From string
+    ;;;   BX: To buffer
+    .proc STRING_COPY_AX_TO_BX
+        from
+            ldy # 0
+        loop
+            lda [AX],y
+            sta [BX],y
+        next
+            beq _end
+            iny
+            bne _loop                                       ; bra
         end
 
         rts
@@ -1754,6 +1764,113 @@
 
         rts
     .endproc
+
+    ;;; summary: Append char to string
+    ;;; in:
+    ;;;   A: Character
+    ;;;   AX: String
+    .proc STRING_APPEND_CHAR_A_TO_AX
+        pha
+            from
+                ldy # $FF                                   ; -1
+            loop
+                iny
+                lda [AX],y
+            next
+                bne _loop
+            end
+        pla
+        sta [AX],y
+        iny
+        lda # PETSCII_NUL
+        sta [AX],y
+
+        rts
+    .endproc
+
+    ;;; summary: Append char to string
+    ;;; in:
+    ;;;   A: Character
+    ;;;   BX: String
+    .proc STRING_APPEND_CHAR_A_TO_BX
+        pha
+            from
+                ldy # $FF                                   ; -1
+            loop
+                iny
+                lda [BX],y
+            next
+                bne _loop
+            end
+        pla
+        sta [AX],y
+        iny
+        lda # PETSCII_NUL
+        sta [BX],y
+
+        rts
+    .endproc
+
+    ;;; summary: Append string
+    ;;; in:
+    ;;;   AX: Target
+    ;;;   BX: Source
+    ;;; changed: A+ X- Y+ DX+
+    .proc STRING_APPEND_BX_TO_AX
+        ; Y := AX.LENGTH
+        from
+            jsr STRING_LENGTH_AX
+            sty DL
+            ldy # 0
+            sty DH
+        loop
+            ldy DH
+            lda [BX], y
+            beq _end                                        ; break
+            ldy DL
+            sta [AX],y
+        next
+            inc DL
+            inc DH
+            bne _loop                                       ; bra
+        end
+
+        ldy DL
+        sta [AX],y
+
+        rts
+    .endproc
+
+    ;;; summary: Append string
+    ;;; in:
+    ;;;   AX: Target
+    ;;;   BX: Source
+    ;;; changed: CX
+    .proc STRING_APPEND_AX_TO_BX
+        ; Y := BX.LENGTH
+        from
+            jsr STRING_LENGTH_BX
+            sty CL
+            ldy # 0
+            sty CH
+        loop
+            ldy CH
+            lda [BX], y
+            beq _end                                        ; break
+            ldy CL
+            sta [AX],y
+        next
+            inc CL
+            inc CH
+            bne _loop                                       ; bra
+        end
+
+        ldy CL
+        sta [AX],y
+
+        rts
+    .endproc
+
 
     ;;; summary: Unsigned binary X#Y to decimal (max 9999)
     .proc BINARY_TO_DECIMAL
@@ -1843,6 +1960,26 @@
         rts
     .endproc
 
+    ;;; summary: Read line from input channel to AX, replacing the RETURN with a NUL
+    .proc IN_LINE
+        from
+            ldy # $FF                                       ; -1
+        loop
+            iny
+            jsr KERNAL_CHRIN
+            sta [AX],y
+        next
+            cmp # PETSCII_RETURN
+            bne _loop
+        end
+
+        ; Replace RETURN with NUL
+        lda # PETSCII_NUL
+        sta [AX],y
+
+        rts
+    .endproc
+
     ;;; summary Jump to subroutine indirect
     ;;; in:
     ;;;   DX: Address of souroutine
@@ -1871,6 +2008,53 @@
         rts
     .endproc
 
+    ;;; summary: Open file
+    ;;; in:
+    ;;;   AX: File name; nul-terminated
+    ;;;   A: File Address
+    ;;;   X: Device Address
+    ;;;   Y: Secondary Address
+    .proc OPEN_FILE_AX
+        jsr KERNAL_SETLFS                                   ; A=FA X=DA Y=SA
+
+        jsr STRING_LENGTH_AX
+        tya
+        ldx AL
+        ldy AH
+        jsr KERNAL_SETNAM                                   ; A=NAME.LENGTH X=<NAME Y=>NAME
+        jsr KERNAL_OPEN
+
+        rts
+    .endproc
+
+    ;;; summary: Initialize AREA_1 aka FILE_NAME_TEXT DISK_COMMAND_TEXT as empty string with reference in AX
+    ;;; out:
+    ;;;   AREA_1[0] = PETSCII_NUL
+    ;;;   AX: &AREA_1
+    ;;;   A: 0
+    ;;; changed: A+ X- Y-
+    .proc INIT_AREA_1_AX
+        lda # < AREA_1
+        sta AL
+        lda # > AREA_1
+        sta AH
+        lda # PETSCII_NUL
+        sta AREA_1
+
+        rts
+    .endproc
+
+    .proc INIT_AREA_1_BX
+        lda # < AREA_1
+        sta BL
+        lda # > AREA_1
+        sta BH
+        lda # PETSCII_NUL
+        sta AREA_1
+
+        rts
+    .endproc
+
     ;endregion
 
 ;
@@ -1879,6 +2063,8 @@
     ;;; summary: Show error message
     ;;; in:
     ;;;   X: Error number
+    ;;; out:
+    ;;;   C=1
     ;;; changed: A+ AX+
     .proc OUT_ERROR
         lda TABLE_ERROR_MESSAGE_LO,x
@@ -2058,20 +2244,20 @@
 
     ;;; summary: Map command name to number
     ;;; in:
-    ;;;   BX: Candidate: nul-terminated string
+    ;;;   AX: Candidate: nul-terminated string
     ;;; out:
     ;;;   X: Command number, if Z=1
     ;;;   Z: 1 = found , 0 = not found
-    ;;; changed: A+ X- Y+ AX+
+    ;;; changed: A+ X- Y+ BX+
     .proc MAP_COMMAND_NAME_TO_COMMAND_NUMBER
         from
             ldx # TABLE_COMMAND_NAME_SIZE - 1
         loop
             lda TABLE_COMMAND_NAME_LO, x
-            sta AL
+            sta BL
             lda TABLE_COMMAND_NAME_HI, x
-            sta AH
-            jsr STRING_COMPARE                                  ; A+ X- Y+
+            sta BH
+            jsr STRING_COMPARE                                  ; Z := AX = BC ; A+ X- Y+
             beq _end                                            ; Z=1 -> equal -> break
         next
             dex
@@ -2083,3 +2269,6 @@
     .endproc
 
     ;endregion
+
+;
+; end

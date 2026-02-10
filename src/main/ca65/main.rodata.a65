@@ -48,11 +48,11 @@
     RESOURCE_STRING_ALREADY_REDIRECTING_OUTPUT:
         .byte "already redirecting output" , PETSCII_RETURN , PETSCII_NUL
 
-    ; Disk command Memory-Read.
-    MR_TEXT:
-        .byte   "m-r"
-    MR_TEXT_AFTER:
-    MR_TEXT_LENGTH = MR_TEXT_AFTER - MR_TEXT
+    RESOURCE_STRING_DISK_COMMAND_MEMORY_READ:
+        .asciiz   "m-r"
+
+    RESOURCE_STRING_DOT_SH:
+        .asciiz ".sh"
 
     ;endregion
 

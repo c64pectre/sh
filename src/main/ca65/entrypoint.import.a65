@@ -17,6 +17,3 @@
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
 .import MAIN
-.import STRING_LENGTH
-.import OUT_STRING_AX
-.import OUT_ERROR
