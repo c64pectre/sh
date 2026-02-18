@@ -15,19 +15,3 @@
 ;    along with this program.  If not, see https://www.gnu.org/licenses/.
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
-
-STRING_DEVICE_DRIVE:
-STRING_DEVICE:
-    .byte   "device: "
-STRING_DEVICE_NUMBER_0:
-    .byte   PETSCII_NUL
-STRING_DEVICE_NUMBER_1:
-    .byte   PETSCII_NUL
-
-STRING_DRIVE:
-    .byte   "  drive: "
-STRING_DRIVE_NUMBER_0:
-    .byte   PETSCII_NUL
-    .byte   PETSCII_RETURN
-    .byte   PETSCII_RETURN
-    .byte   PETSCII_NUL

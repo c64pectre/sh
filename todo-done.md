@@ -49,6 +49,8 @@ We can use these memory areas:
 - $033C-$03FB (192 bytes) the Datasette/tape buffer.
 - $03FC-$03FF (4 bytes) the 4 unused bytes after the tape buffer.
 
+We can use the DISK_COMMAND_TEXT also for file name, so FILE_NAME_TEXT is not needed anymore.
+
 # DONE Combine disk command data into one buffer in KVAR
 
 Combine disk command data strings in DATA segment, like `RM_TEXT` and `MV_TEXT` into
@@ -92,6 +94,8 @@ You can type very long names for `l`, `ls`, `mv`, `rm` that can lead to buffer o
 ## DONE Pause (SHIFT) `pr`
 
 ## TODO Rename `pr` to `cat`
+
+## TODO rename `bye` to `exit`
 
 ## TODO `cp`
 
@@ -190,6 +194,8 @@ So we do not have the quirky behavior of the standard editor.
 
 ## DONE Colors configurable optionally
 
+Configurabe in the app in a fixed location (ABI) or in `sh.cfg`.
+
 If configuration border and background color is negative then do not set.
 
 If configuration foreground color char is PETSCII_NUL then do not set.
@@ -237,3 +243,119 @@ We do not need to reset memory layout because `KERNAL_IOINIT` does that.
 We can reuse `RESET_FILE_IO`.
 
 ## DONE pr not stopping after EOI
+
+## TODO `pr` I/o redirection
+
+Pr without arguments should have redirect input active:
+    pr < in
+
+    pr < in > out
+
+# TODO `pr` with multiple arguments should be possible:
+
+    pr file1 file2
+
+    pr file1 file2 > out
+
+## TODO `l`, `ls` multiple arguments
+
+List directory should be able to list multiple arguments
+    l
+    l pattern1
+    l pattern1 pattern2
+
+## TODO `rm`, multiple arguments
+
+Remove command should be able to process multiple arguments
+    rm PATTERN1 PATTERN2 ...
+
+## TODO `cp` Copy command
+
+    cp FROM TO
+
+No wildcards
+
+## TODO BUFFERED_OUT uses hadcoded FA
+
+Always uses `FILE_FA` (`4`). This is not good because now we cannot have:
+
+    pr < in
+
+because redirect input uses another FA `REDIRECT_INPUT_FA` (`2`).
+So we need global variables in the ABI area:
+
+    IN_FA
+    OUT_FA
+
+# 
+# DONE Command `disk` always show disk status
+
+Let command `disk` always show disk status.
+
+# TODO NMI Continuation
+
+We now rely on implementation details of the Kernal
+KERNAL_NNMI20 := $FE72 ; Kernal nnmi20 continuation of NMI handing.
+
+We should call the original NMI handler, restoring register state before jumping.
+Is this even possible because we read out CIA IRC.
+
+# TODO Do we need BUFFERED_INPUT_STREAM?
+
+# TODO For each directory item lambda
+
+# TODO Get rid of drive 0/1
+
+No disk drives having two drives exist that work with the Commodore 64, at least in Vice. They all have got just one drive 0.
+So why not get rid of this drive concept, saving a lot of unneccessary code.
+
+Then `l` and `ls` become `ls`.
+
+Then `work` and `sys` become `cd` (or `cwd`).
+
+# TODO `ls-l` List details
+
+Make `ls` list only names and `ls-l` list with details.
+
+# TODO File names with device
+
+For example:
+
+    cp 8:FROM 9:TO
+
+    cat 8:FILE 9:ANOTHER 10:FILE
+
+Maybe, not sure also allow drive
+
+    ls
+    ls *
+    ls 8:
+    ls 8:*
+    ls 8:1
+    ls 8:1:*
+    ls :1
+    ls :1:*
+
+Maybe even directories
+
+    ls 8:1:DIR/*
+    ls 9:0://DIR/DIR/*
+
+# TODO Directories
+
+Support directories on the CMD-HD, like with `paths` and `cd` and `pwd`.
+
+# PATH
+
+In stead of the sys and work concept introduce a PATH concept that sets the locations for commands, for example
+
+    PATH 8:
+    PARH 8:;9:
+    PATH 10://BIN;9:1;8:
+
+This is then in a configuration file `sh.cfg` or maybe in the `sh` itself
+
+
+# TODO Use GEOram / NEOram file
+
+Use GEOram / NEOram as swap file to cache loaded programs.

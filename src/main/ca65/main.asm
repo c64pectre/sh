@@ -19,6 +19,7 @@
 .include "cpu-6502.inc"
 .include "structured-programming.inc"
 .include "c64/registers.inc"
+.include "c64/frame-registers.inc"
 .include "c64/memory-map.inc"
 .include "c64/kernal-r3.inc"
 .include "c64/kernal-r3-internal.inc"

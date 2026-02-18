@@ -16,10 +16,12 @@
 ;
 ;    Contact: https://github.com/c64pectre/exehdr/ create an issue
 
+;region Constants
+
 DEFAULT_DEVICE = 8
 DEFAULT_DRIVE = 0
 
-DISK_COMMAND_FA = 15
+DISK_COMMAND_FA = DEVICE_DISK_CHANNEL_COMMAND
 DISK_COMMAND_FA_SA = DISK_COMMAND_FA
 
 REDIRECT_INPUT_FA = 1
@@ -45,16 +47,19 @@ FILE_NAME_MAX_LENGTH = 16
 
 DISK_NAME_MAX_LENGTH = 16
 
+; Maybe it's 41
 DISK_COMMAND_MAX_LENGTH = 40
 
-DISID_LENGTH = 2
+DISK_ID_LENGTH = 2
 
 ; summary: Maximum length for command name. Is file name max length minus 3 for ".sh" is 13.
 COMMAND_NAME_MAX_LENGTH = FILE_NAME_MAX_LENGTH - 3
 
+;endregion
+
 ;region Built in command numbers
 
-COMMAND_NUMBER_EXIT = 0
+COMMAND_NUMBER_BYE  = 0
 COMMAND_NUMBER_LOAD = 1
 COMMAND_NUMBER_LS   = 2
 COMMAND_NUMBER_L    = 3
@@ -65,36 +70,35 @@ COMMAND_NUMBER_DISK = 7
 COMMAND_NUMBER_WORK = 8
 COMMAND_NUMBER_SYS  = 9
 
-;endregion
-
 ;region Error numbers
 
-ERROR_NUMBER_COMMAND_NOT_FOUND          = 0
-ERROR_NUMBER_CANT_OPEN_INPUT_FILE       = 1
-ERROR_NUMBER_CANT_OPEN_OUTPUT_FILE      = 2
-ERROR_NUMBER_PRINTER_NOT_PRESENT        = 3
-ERROR_NUMBER_DEVICE_NOT_PRESENT         = 4
-ERROR_NUMBER_WRONG_NUMBER_OF_ARGUMENTS  = 5
-ERROR_NUMBER_DRIVE_NOT_PRESENT          = 6
-ERROR_NUMBER_FILE_NAME_TOO_LONG         = 7
+ERROR_NUMBER_COMMAND_NOT_FOUND     = 0
+ERROR_NUMBER_CANT_OPEN_INPUT_FILE  = 1
+ERROR_NUMBER_CANT_OPEN_OUTPUT_FILE = 2
+ERROR_NUMBER_PRINTER_NOT_PRESENT   = 3
+ERROR_NUMBER_DEVICE_NOT_PRESENT    = 4
+ERROR_NUMBER_INCORRECT_ARGUMENTS   = 5
+ERROR_NUMBER_DRIVE_NOT_PRESENT     = 6
+ERROR_NUMBER_FILE_NAME_TOO_LONG    = 7
+ERROR_NUMBER_WRONG_DEVICE          = 8
+ERROR_NUMBER_WRONG_DRIVE           = 9
 
 ;endregion
 
-;
 ;region Boolean values
 
-    ;;; summary: False value
-    ;;; notes:
-    ;;;   You can use the `bit` instruction to test a boolean value without changing any register:
-    ;;;       bit M
-    ;;;       bpl FALSE_BRANCH
-    ;;;       bmi TRUE_BRANCH
-    ;;;   You can flip a boolean value without changing any register:
-    ;;;     From `FALSE` to `TRUE`:
-    ;;;         dec M
-    ;;;     From `TRUE` to `FALSE`:
-    ;;;         inc M
-    FALSE = 0
-    TRUE = $FF
+;;; summary: False value
+;;; notes:
+;;;   You can use the `bit` instruction to test a boolean value without changing any register:
+;;;       bit M
+;;;       bpl FALSE_BRANCH
+;;;       bmi TRUE_BRANCH
+;;;   You can flip a boolean value without changing any register:
+;;;     From `FALSE` to `TRUE`:
+;;;         dec M
+;;;     From `TRUE` to `FALSE`:
+;;;         inc M
+FALSE = 0
+TRUE = $FF
 
-    ;endregion
+;endregion
